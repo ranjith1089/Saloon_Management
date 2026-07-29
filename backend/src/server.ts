@@ -3,10 +3,10 @@ import env from './config/env';
 import prisma from './config/database';
 import logger from './utils/logger';
 
-const server = app.listen(env.PORT, () => {
+const server = app.listen(env.PORT, '0.0.0.0', () => {
   logger.info(`🚀 Server running on port ${env.PORT}`);
-  logger.info(`📖 API URL: http://localhost:${env.PORT}${env.API_PREFIX}`);
-  logger.info(`🏥 Health check: http://localhost:${env.PORT}${env.API_PREFIX}/health`);
+  logger.info(`📖 API prefix: ${env.API_PREFIX}`);
+  logger.info(`🏥 Health check: ${env.API_PREFIX}/health`);
   logger.info(`🌍 Environment: ${env.NODE_ENV}`);
 });
 
