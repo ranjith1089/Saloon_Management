@@ -5,6 +5,9 @@
   "installCommand": "echo 'Skipping root install; frontend installs in buildCommand'",
   "framework": null,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

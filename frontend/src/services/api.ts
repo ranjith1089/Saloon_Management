@@ -1,7 +1,47 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+/**
+ * Resolves the API base URL from env with validation.
+ * - Auto-prepends https:// if missing (avoids "relative path" bug)
+ * - Strips trailing slash
+ * - Warns loudly in the console if the value is missing or looks wrong
+ */
+function resolveApiUrl(): string {
+  const raw = import.meta.env.VITE_API_URL?.trim();
+
+  if (!raw) {
+    console.warn(
+      '[api] VITE_API_URL is not set. Falling back to http://localhost:5000/api/v1 — ' +
+      'this WILL NOT work in production. Set VITE_API_URL in your deployment env.'
+    );
+    return 'http://localhost:5000/api/v1';
+  }
+
+  let url = raw;
+
+  // Auto-add https:// if user forgot the protocol
+  if (!/^https?:\/\//i.test(url)) {
+    console.warn(`[api] VITE_API_URL "${url}" is missing protocol — prepending https://`);
+    url = `https://${url}`;
+  }
+
+  // Strip trailing slash to prevent double slashes
+  url = url.replace(/\/+$/, '');
+
+  // Warn if /api prefix looks missing (heuristic)
+  if (!/\/api(\/|$)/.test(url)) {
+    console.warn(
+      `[api] VITE_API_URL "${url}" does not appear to contain "/api" — ` +
+      'your requests may 404. Expected format: https://your-backend.com/api/v1'
+    );
+  }
+
+  return url;
+}
+
+const API_URL = resolveApiUrl();
+console.info(`[api] Base URL: ${API_URL}`);
 
 const api = axios.create({
   baseURL: API_URL,
@@ -43,7 +83,16 @@ api.interceptors.response.use(
       }
     }
 
-    const message = error.response?.data?.message || 'Something went wrong';
+    // Better error messaging
+    let message = 'Something went wrong';
+    if (error.code === 'ERR_NETWORK') {
+      message = 'Cannot reach the server. Check VITE_API_URL or network connection.';
+    } else if (error.response?.status === 405) {
+      message = 'API URL misconfigured (405). Check that VITE_API_URL includes https:// and the correct path.';
+    } else if (error.response?.data?.message) {
+      message = error.response.data.message;
+    }
+
     if (error.response?.status !== 401) {
       toast.error(message);
     }
