@@ -1,0 +1,14 @@
+{
+  "name": "salon-management",
+  "version": "1.0.0",
+  "description": "Salon Management System - Monorepo (backend + frontend)",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "cd backend && npm install && npx prisma generate && npm run build",
+    "start": "cd backend && npx prisma migrate deploy && npm start"
+  }
+}
