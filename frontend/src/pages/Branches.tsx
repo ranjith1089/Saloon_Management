@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, MapPin, Phone, Building2 } from 'lucide-react';
 import api from '@/services/api';
+import NewBranchModal from '@/components/NewBranchModal';
 
 export default function Branches() {
+  const [modalOpen, setModalOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => (await api.get('/branches')).data,
@@ -15,10 +19,12 @@ export default function Branches() {
           <h1 className="text-2xl font-bold">Branches</h1>
           <p className="text-sm text-gray-500 mt-1">Manage salon locations</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Branch
         </button>
       </div>
+
+      <NewBranchModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Loading...</p>

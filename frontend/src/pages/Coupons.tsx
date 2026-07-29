@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Ticket, Copy } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
+import NewCouponModal from '@/components/NewCouponModal';
 
 export default function Coupons() {
+  const [modalOpen, setModalOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['coupons'],
     queryFn: async () => (await api.get('/coupons')).data,
@@ -21,10 +25,12 @@ export default function Coupons() {
           <h1 className="text-2xl font-bold">Coupons & Promotions</h1>
           <p className="text-sm text-gray-500 mt-1">Manage discount codes and offers</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Coupon
         </button>
       </div>
+
+      <NewCouponModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Loading...</p>

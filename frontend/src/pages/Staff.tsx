@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, CheckCircle2 } from 'lucide-react';
 import api from '@/services/api';
+import NewStaffModal from '@/components/NewStaffModal';
 
 export default function Staff() {
+  const [modalOpen, setModalOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['staff'],
     queryFn: async () => (await api.get('/staff')).data,
@@ -15,10 +19,12 @@ export default function Staff() {
           <h1 className="text-2xl font-bold">Staff</h1>
           <p className="text-sm text-gray-500 mt-1">Manage salon staff and stylists</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Staff
         </button>
       </div>
+
+      <NewStaffModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Loading...</p>

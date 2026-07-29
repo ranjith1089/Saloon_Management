@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Users } from 'lucide-react';
 import api from '@/services/api';
+import NewCustomerModal from '@/components/NewCustomerModal';
 
 export default function Customers() {
+  const [modalOpen, setModalOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['customers'],
     queryFn: async () => (await api.get('/customers')).data,
@@ -15,10 +19,12 @@ export default function Customers() {
           <h1 className="text-2xl font-bold">Customers</h1>
           <p className="text-sm text-gray-500 mt-1">Manage customer database</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Customer
         </button>
       </div>
+
+      <NewCustomerModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">

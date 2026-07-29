@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Clock } from 'lucide-react';
 import api from '@/services/api';
+import NewServiceModal from '@/components/NewServiceModal';
 
 export default function Services() {
+  const [modalOpen, setModalOpen] = useState(false);
+
   const { data, isLoading } = useQuery({
     queryKey: ['services'],
     queryFn: async () => (await api.get('/services')).data,
@@ -15,10 +19,12 @@ export default function Services() {
           <h1 className="text-2xl font-bold">Services</h1>
           <p className="text-sm text-gray-500 mt-1">All available salon services</p>
         </div>
-        <button className="btn-primary">
+        <button className="btn-primary" onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4 mr-1" /> New Service
         </button>
       </div>
+
+      <NewServiceModal open={modalOpen} onClose={() => setModalOpen(false)} />
 
       <div className="card overflow-hidden p-0">
         <div className="overflow-x-auto">
