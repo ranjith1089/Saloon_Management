@@ -11,9 +11,24 @@ const app: Express = express();
 
 // Security middlewares
 app.use(helmet());
+
+// CORS — supports "*" (reflect any origin), comma-separated list, or single origin
+const allowedOrigins = env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean);
+const allowAll = allowedOrigins.includes('*');
+
 app.use(
   cors({
-    origin: env.CORS_ORIGIN.split(','),
+    origin: (origin, callback) => {
+      // Allow non-browser requests (curl, mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowAll) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Allow all *.vercel.app previews by default when only production URL is set
+      if (allowedOrigins.some((o) => o.includes('.vercel.app')) && origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: Origin ${origin} not allowed`));
+    },
     credentials: true,
   })
 );
