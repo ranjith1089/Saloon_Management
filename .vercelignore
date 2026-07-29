@@ -1,0 +1,7 @@
+backend/
+docs/
+DEVELOPMENT_PLAN.md
+FREZKA_ANALYSIS.md
+SETUP_GUIDE.md
+nixpacks.toml
+railway.json
