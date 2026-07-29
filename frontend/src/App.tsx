@@ -14,7 +14,7 @@ import Reviews from '@/pages/Reviews';
 import Earnings from '@/pages/Earnings';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
-import Placeholder from '@/pages/Placeholder';
+import Settings from '@/pages/Settings';
 
 export default function App() {
   return (
@@ -35,7 +35,7 @@ export default function App() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/notifications" element={<Notifications />} />
-        <Route path="/settings" element={<Placeholder title="Settings" />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
