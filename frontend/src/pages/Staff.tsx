@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, CheckCircle2 } from 'lucide-react';
+import { Plus, CheckCircle2, CalendarClock } from 'lucide-react';
 import api from '@/services/api';
 import NewStaffModal from '@/components/NewStaffModal';
+import StaffScheduleModal from '@/components/StaffScheduleModal';
 
 export default function Staff() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [scheduleFor, setScheduleFor] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['staff'],
@@ -25,6 +27,7 @@ export default function Staff() {
       </div>
 
       <NewStaffModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <StaffScheduleModal open={!!scheduleFor} onClose={() => setScheduleFor(null)} staff={scheduleFor} />
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Loading...</p>
@@ -67,6 +70,15 @@ export default function Staff() {
                   <span className="text-gray-500">Commission:</span>
                   <span className="font-medium">{s.commissionRate}%</span>
                 </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <button
+                  onClick={() => setScheduleFor(s)}
+                  className="btn-secondary w-full text-xs !py-1.5 inline-flex items-center justify-center gap-1"
+                >
+                  <CalendarClock className="w-3.5 h-3.5" /> Edit Schedule
+                </button>
               </div>
             </div>
           ))}

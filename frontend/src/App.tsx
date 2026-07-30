@@ -12,6 +12,7 @@ import Customers from '@/pages/Customers';
 import Coupons from '@/pages/Coupons';
 import Reviews from '@/pages/Reviews';
 import Earnings from '@/pages/Earnings';
+import Payouts from '@/pages/Payouts';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/staff" element={<Staff />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/earnings" element={<Earnings />} />
+        <Route path="/payouts" element={<Payouts />} />
         <Route path="/coupons" element={<Coupons />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/reports" element={<Reports />} />

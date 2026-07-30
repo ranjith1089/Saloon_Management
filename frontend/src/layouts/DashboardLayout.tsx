@@ -18,6 +18,7 @@ import {
   Ticket,
   Star,
   DollarSign,
+  Wallet,
   Bell,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -32,6 +33,7 @@ const menuItems = [
   { path: '/staff', label: 'Staff', icon: Users, roles: ['ADMIN', 'MANAGER'] },
   { path: '/customers', label: 'Customers', icon: UserCircle },
   { path: '/earnings', label: 'Earnings', icon: DollarSign, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+  { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER'] },
   { path: '/coupons', label: 'Coupons', icon: Ticket, roles: ['ADMIN', 'MANAGER'] },
   { path: '/reviews', label: 'Reviews', icon: Star },
   { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
