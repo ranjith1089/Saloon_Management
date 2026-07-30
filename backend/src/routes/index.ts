@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import prisma from '../config/database';
 import authRoutes from './auth.routes';
 import branchRoutes from './branch.routes';
 import serviceRoutes from './service.routes';
@@ -16,8 +17,24 @@ import settingsRoutes from './settings.routes';
 
 const router = Router();
 
-router.get('/health', (_req, res) => {
+router.get('/health', async (_req, res) => {
+  // Liveness — always cheap.
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+router.get('/health/ready', async (_req, res) => {
+  // Readiness — checks the DB is reachable. Use this for the platform healthcheck.
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'OK', db: 'up', timestamp: new Date().toISOString() });
+  } catch (err: any) {
+    res.status(503).json({
+      status: 'DEGRADED',
+      db: 'down',
+      error: err?.message || 'Database unreachable',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 router.use('/auth', authRoutes);

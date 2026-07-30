@@ -26,7 +26,9 @@ export class ReportService {
         _count: true,
       }),
       prisma.booking.aggregate({
-        where: { ...where, paymentStatus: 'PAID' },
+        // Revenue = confirmed booked revenue (everything except cancellations/no-shows).
+        // `paymentStatus` isn't maintained by the booking flow, so filtering by it always yields 0.
+        where: { ...where, status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
         _sum: { totalAmount: true, taxAmount: true, discountAmount: true },
       }),
     ]);
@@ -58,7 +60,7 @@ export class ReportService {
       prisma.booking.count({ where }),
       prisma.booking.groupBy({ by: ['status'], where, _count: true }),
       prisma.booking.aggregate({
-        where: { ...where, paymentStatus: 'PAID' },
+        where: { ...where, status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
         _sum: { totalAmount: true, taxAmount: true, discountAmount: true },
       }),
       prisma.booking.groupBy({

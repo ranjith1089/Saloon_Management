@@ -33,11 +33,12 @@ app.use(
   })
 );
 
-// Rate limiting
+// Rate limiting — exempt healthcheck probes so platform monitors don't eat the window.
 const limiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
   max: env.RATE_LIMIT_MAX_REQUESTS,
   message: 'Too many requests from this IP, please try again later',
+  skip: (req) => req.path.startsWith(env.API_PREFIX + '/health'),
 });
 app.use(limiter);
 

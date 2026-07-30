@@ -21,7 +21,9 @@ export class DashboardService {
     ] = await Promise.all([
       prisma.booking.count({ where: bookingWhere }),
       prisma.booking.aggregate({
-        where: { ...bookingWhere, paymentStatus: 'PAID' },
+        // Revenue = confirmed booked revenue. `paymentStatus` isn't updated by the app,
+        // so any filter on it yields 0. Exclude only cancellations and no-shows.
+        where: { ...bookingWhere, status: { notIn: ['CANCELLED', 'NO_SHOW'] } },
         _sum: { totalAmount: true },
       }),
       prisma.customer.count(),
@@ -93,7 +95,7 @@ export class DashboardService {
     const bookings = await prisma.booking.findMany({
       where: {
         bookingDate: { gte: startDate, lte: endDate },
-        paymentStatus: 'PAID',
+        status: { notIn: ['CANCELLED', 'NO_SHOW'] },
         ...(query.branchId && { branchId: query.branchId }),
       },
       select: {
