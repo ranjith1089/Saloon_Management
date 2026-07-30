@@ -9,6 +9,7 @@ import {
   Plus, Trash2, GripVertical, RefreshCcw,
 } from 'lucide-react';
 import api from '@/services/api';
+import { settingsApi } from '@/services/settings.service';
 import { useAuthStore } from '@/store/authStore';
 
 type Tab = 'profile' | 'password' | 'business' | 'branding' | 'currency' | 'holidays' | 'payments' | 'notifications' | 'system';
@@ -342,14 +343,21 @@ function BusinessTab() {
 // ============ BRANDING TAB ============
 function BrandingTab() {
   const [saved, setSaved] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: current } = useQuery({
+    queryKey: ['settings-branding'],
+    queryFn: settingsApi.getBranding,
+  });
+
   const { register, handleSubmit, watch, reset } = useForm({
-    defaultValues: {
-      businessName: localStorage.getItem('brand.name') || 'Salon Management',
-      tagline: localStorage.getItem('brand.tagline') || 'Book. Style. Repeat.',
-      primaryColor: localStorage.getItem('brand.primary') || '#6366f1',
-      secondaryColor: localStorage.getItem('brand.secondary') || '#ec4899',
-      fontFamily: localStorage.getItem('brand.font') || 'Inter',
-      logoUrl: localStorage.getItem('brand.logo') || '',
+    values: {
+      businessName: current?.businessName || 'Salon Management',
+      tagline: current?.tagline || 'Book. Style. Repeat.',
+      primaryColor: current?.primaryColor || '#6366f1',
+      secondaryColor: current?.secondaryColor || '#ec4899',
+      fontFamily: current?.fontFamily || 'Inter',
+      logoUrl: current?.logoUrl || '',
     },
   });
 
@@ -360,21 +368,18 @@ function BrandingTab() {
   const tagline = watch('tagline');
   const logo = watch('logoUrl');
 
-  const onSubmit = (data: any) => {
-    Object.entries({
-      'brand.name': data.businessName,
-      'brand.tagline': data.tagline,
-      'brand.primary': data.primaryColor,
-      'brand.secondary': data.secondaryColor,
-      'brand.font': data.fontFamily,
-      'brand.logo': data.logoUrl,
-    }).forEach(([k, v]) => localStorage.setItem(k, v as string));
-    // Apply primary color to CSS var immediately
-    document.documentElement.style.setProperty('--primary', data.primaryColor);
-    setSaved(true);
-    toast.success('Branding saved');
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const saveMutation = useMutation({
+    mutationFn: settingsApi.updateBranding,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-branding'] });
+      document.documentElement.style.setProperty('--primary', primary);
+      setSaved(true);
+      toast.success('Branding saved');
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
+  const onSubmit = (data: any) => saveMutation.mutate(data);
 
   const resetToDefaults = () => {
     reset({
@@ -385,7 +390,7 @@ function BrandingTab() {
       fontFamily: 'Inter',
       logoUrl: '',
     });
-    toast.success('Reverted to defaults');
+    toast.success('Reverted to defaults (unsaved)');
   };
 
   return (
@@ -397,7 +402,7 @@ function BrandingTab() {
           <p className="text-sm text-gray-500 mt-1">Customize your salon's look & feel</p>
         </div>
 
-        <LocalOnlyBanner />
+        <PersistedBanner />
 
         <div>
           <label className="label">Business Name</label>
@@ -449,7 +454,9 @@ function BrandingTab() {
           <button type="button" onClick={resetToDefaults} className="btn-secondary text-sm">
             <RefreshCcw className="w-4 h-4 mr-1" /> Reset
           </button>
-          <button type="submit" className="btn-primary"><Save className="w-4 h-4 mr-1" /> Save</button>
+          <button type="submit" disabled={saveMutation.isPending} className="btn-primary">
+            {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
+          </button>
         </div>
       </form>
 
@@ -497,15 +504,22 @@ function BrandingTab() {
 // ============ CURRENCY TAB ============
 function CurrencyTab() {
   const [saved, setSaved] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: current } = useQuery({
+    queryKey: ['settings-currency'],
+    queryFn: settingsApi.getCurrency,
+  });
+
   const { register, watch, handleSubmit } = useForm({
-    defaultValues: {
-      currency: localStorage.getItem('cur.code') || 'INR',
-      symbol: localStorage.getItem('cur.symbol') || '₹',
-      symbolPosition: localStorage.getItem('cur.pos') || 'before',
-      decimals: localStorage.getItem('cur.dec') || '2',
-      thousandSep: localStorage.getItem('cur.thou') || ',',
-      decimalSep: localStorage.getItem('cur.decSep') || '.',
-      showCode: localStorage.getItem('cur.showCode') === 'true',
+    values: {
+      currency: current?.currency || 'INR',
+      symbol: current?.symbol || '₹',
+      symbolPosition: current?.symbolPosition || 'before',
+      decimals: String(current?.decimals ?? '2'),
+      thousandSep: current?.thousandSep ?? ',',
+      decimalSep: current?.decimalSep ?? '.',
+      showCode: current?.showCode ?? false,
     },
   });
 
@@ -529,18 +543,20 @@ function CurrencyTab() {
     INR: '₹', USD: '$', EUR: '€', GBP: '£', AED: 'د.إ', JPY: '¥', CAD: 'C$', AUD: 'A$',
   };
 
-  const onSubmit = (data: any) => {
-    localStorage.setItem('cur.code', data.currency);
-    localStorage.setItem('cur.symbol', data.symbol);
-    localStorage.setItem('cur.pos', data.symbolPosition);
-    localStorage.setItem('cur.dec', data.decimals);
-    localStorage.setItem('cur.thou', data.thousandSep);
-    localStorage.setItem('cur.decSep', data.decimalSep);
-    localStorage.setItem('cur.showCode', String(data.showCode));
-    setSaved(true);
-    toast.success('Currency settings saved');
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const saveMutation = useMutation({
+    mutationFn: settingsApi.updateCurrency,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-currency'] });
+      setSaved(true);
+      toast.success('Currency settings saved');
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
+
+  const onSubmit = (data: any) => saveMutation.mutate({
+    ...data,
+    decimals: parseInt(data.decimals, 10),
+  });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="card space-y-4">
@@ -549,7 +565,7 @@ function CurrencyTab() {
         <p className="text-sm text-gray-500 mt-1">How prices and amounts are displayed</p>
       </div>
 
-      <LocalOnlyBanner />
+      <PersistedBanner />
 
       <div className="bg-gradient-to-r from-primary-500 to-primary-700 text-white p-6 rounded-xl">
         <p className="text-xs uppercase opacity-80">Live Preview</p>
@@ -625,61 +641,56 @@ function CurrencyTab() {
 
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
         {saved && <span className="text-sm text-green-600 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" /> Saved</span>}
-        <button type="submit" className="btn-primary"><Save className="w-4 h-4 mr-1" /> Save</button>
+        <button type="submit" disabled={saveMutation.isPending} className="btn-primary">
+          {saveMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
+        </button>
       </div>
     </form>
   );
 }
 
 // ============ HOLIDAYS TAB ============
-interface Holiday {
-  id: string;
-  name: string;
-  date: string;
-  repeats: boolean;
-  behavior: 'BLOCK' | 'REDUCED' | 'WARN';
-  color: string;
-}
-
 function HolidaysTab() {
-  const load = (): Holiday[] => {
-    try { return JSON.parse(localStorage.getItem('holidays') || '[]'); }
-    catch { return []; }
-  };
-  const [holidays, setHolidays] = useState<Holiday[]>(load);
+  const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const { register, handleSubmit, reset } = useForm({
     defaultValues: { name: '', date: '', repeats: false, behavior: 'BLOCK', color: '#ef4444' },
   });
 
-  const save = (list: Holiday[]) => {
-    localStorage.setItem('holidays', JSON.stringify(list));
-    setHolidays(list);
-  };
+  const { data: holidays = [] } = useQuery({
+    queryKey: ['holidays'],
+    queryFn: settingsApi.listHolidays,
+  });
 
-  const onAdd = (data: any) => {
-    save([...holidays, { ...data, id: crypto.randomUUID() }]);
-    reset();
-    setAdding(false);
-    toast.success('Holiday added');
-  };
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['holidays'] });
 
-  const onDelete = (id: string) => {
-    save(holidays.filter((h) => h.id !== id));
-    toast.success('Removed');
-  };
+  const createMutation = useMutation({
+    mutationFn: settingsApi.createHoliday,
+    onSuccess: () => { invalidate(); reset(); setAdding(false); toast.success('Holiday added'); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: settingsApi.deleteHoliday,
+    onSuccess: () => { invalidate(); toast.success('Removed'); },
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: settingsApi.bulkCreateHolidays,
+    onSuccess: (data: any) => { invalidate(); toast.success(`Added ${data.count} holidays`); },
+  });
+
+  const onAdd = (data: any) => createMutation.mutate(data);
+  const onDelete = (id: string) => deleteMutation.mutate(id);
 
   const importIndian = () => {
     const year = new Date().getFullYear();
-    const nationalHolidays: Holiday[] = [
-      { id: crypto.randomUUID(), name: 'Republic Day', date: `${year}-01-26`, repeats: true, behavior: 'BLOCK', color: '#f97316' },
-      { id: crypto.randomUUID(), name: 'Independence Day', date: `${year}-08-15`, repeats: true, behavior: 'BLOCK', color: '#22c55e' },
-      { id: crypto.randomUUID(), name: 'Gandhi Jayanti', date: `${year}-10-02`, repeats: true, behavior: 'BLOCK', color: '#8b5cf6' },
-      { id: crypto.randomUUID(), name: 'Christmas', date: `${year}-12-25`, repeats: true, behavior: 'BLOCK', color: '#dc2626' },
-      { id: crypto.randomUUID(), name: 'Diwali', date: `${year}-11-01`, repeats: true, behavior: 'BLOCK', color: '#eab308' },
-    ];
-    save([...holidays, ...nationalHolidays]);
-    toast.success(`Added ${nationalHolidays.length} Indian holidays`);
+    bulkMutation.mutate([
+      { name: 'Republic Day', date: `${year}-01-26`, repeats: true, behavior: 'BLOCK', color: '#f97316' },
+      { name: 'Independence Day', date: `${year}-08-15`, repeats: true, behavior: 'BLOCK', color: '#22c55e' },
+      { name: 'Gandhi Jayanti', date: `${year}-10-02`, repeats: true, behavior: 'BLOCK', color: '#8b5cf6' },
+      { name: 'Christmas', date: `${year}-12-25`, repeats: true, behavior: 'BLOCK', color: '#dc2626' },
+      { name: 'Diwali', date: `${year}-11-01`, repeats: true, behavior: 'BLOCK', color: '#eab308' },
+    ]);
   };
 
   const behaviorLabels: Record<string, string> = {
@@ -688,7 +699,7 @@ function HolidaysTab() {
     WARN: 'Warn only',
   };
 
-  const sortedHolidays = [...holidays].sort((a, b) => a.date.localeCompare(b.date));
+  const sortedHolidays = [...holidays].sort((a: any, b: any) => a.date.localeCompare(b.date));
 
   return (
     <div className="space-y-4">
@@ -699,14 +710,14 @@ function HolidaysTab() {
             <p className="text-sm text-gray-500 mt-1">Days when bookings are blocked or restricted</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={importIndian} className="btn-secondary text-sm">Import Indian Holidays</button>
+            <button onClick={importIndian} className="btn-secondary text-sm" disabled={bulkMutation.isPending}>Import Indian Holidays</button>
             <button onClick={() => setAdding(!adding)} className="btn-primary text-sm">
               <Plus className="w-4 h-4 mr-1" /> Add Holiday
             </button>
           </div>
         </div>
 
-        <LocalOnlyBanner />
+        <PersistedBanner />
 
         {adding && (
           <form onSubmit={handleSubmit(onAdd)} className="mt-4 border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
@@ -758,7 +769,7 @@ function HolidaysTab() {
                 <p>No holidays yet</p>
               </td></tr>
             ) : (
-              sortedHolidays.map((h) => (
+              sortedHolidays.map((h: any) => (
                 <tr key={h.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -793,67 +804,59 @@ function HolidaysTab() {
 }
 
 // ============ PAYMENT METHODS TAB ============
-interface PaymentMethod {
-  id: string;
-  name: string;
-  type: 'CASH' | 'DIGITAL' | 'CARD' | 'BANK_TRANSFER';
-  gateway: 'NONE' | 'RAZORPAY' | 'STRIPE' | 'PAYU' | 'PAYPAL';
-  icon: string;
-  enabled: boolean;
-  sortOrder: number;
-  testMode: boolean;
-}
-
 function PaymentsTab() {
-  const load = (): PaymentMethod[] => {
-    try { return JSON.parse(localStorage.getItem('payments') || '[]'); }
-    catch { return []; }
-  };
-  const [methods, setMethods] = useState<PaymentMethod[]>(load);
+  const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const { register, handleSubmit, reset } = useForm({
     defaultValues: { name: '', type: 'CASH', gateway: 'NONE', icon: '💵', enabled: true, testMode: true },
   });
 
-  const save = (list: PaymentMethod[]) => {
-    const sorted = list.sort((a, b) => a.sortOrder - b.sortOrder);
-    localStorage.setItem('payments', JSON.stringify(sorted));
-    setMethods(sorted);
-  };
+  const { data: methods = [] } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: settingsApi.listPaymentMethods,
+  });
 
-  const onAdd = (data: any) => {
-    save([...methods, { ...data, id: crypto.randomUUID(), sortOrder: methods.length }]);
-    reset();
-    setAdding(false);
-    toast.success('Payment method added');
-  };
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['payment-methods'] });
 
-  const toggleEnabled = (id: string) => {
-    save(methods.map((m) => m.id === id ? { ...m, enabled: !m.enabled } : m));
-  };
+  const createMutation = useMutation({
+    mutationFn: settingsApi.createPaymentMethod,
+    onSuccess: () => { invalidate(); reset(); setAdding(false); toast.success('Payment method added'); },
+  });
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => settingsApi.updatePaymentMethod(id, data),
+    onSuccess: () => invalidate(),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: settingsApi.deletePaymentMethod,
+    onSuccess: () => { invalidate(); toast.success('Removed'); },
+  });
+  const reorderMutation = useMutation({
+    mutationFn: settingsApi.reorderPaymentMethods,
+    onSuccess: () => invalidate(),
+  });
 
-  const onDelete = (id: string) => {
-    save(methods.filter((m) => m.id !== id).map((m, i) => ({ ...m, sortOrder: i })));
-    toast.success('Removed');
-  };
+  const onAdd = (data: any) => createMutation.mutate(data);
+  const toggleEnabled = (id: string, current: boolean) => updateMutation.mutate({ id, data: { enabled: !current } });
+  const onDelete = (id: string) => deleteMutation.mutate(id);
 
   const move = (id: string, dir: 'up' | 'down') => {
-    const idx = methods.findIndex((m) => m.id === id);
+    const idx = methods.findIndex((m: any) => m.id === id);
     const newIdx = dir === 'up' ? idx - 1 : idx + 1;
     if (newIdx < 0 || newIdx >= methods.length) return;
     const list = [...methods];
     [list[idx], list[newIdx]] = [list[newIdx], list[idx]];
-    save(list.map((m, i) => ({ ...m, sortOrder: i })));
+    reorderMutation.mutate(list.map((m: any) => m.id));
   };
 
-  const addDefaults = () => {
-    const defaults: PaymentMethod[] = [
-      { id: crypto.randomUUID(), name: 'Cash', type: 'CASH', gateway: 'NONE', icon: '💵', enabled: true, sortOrder: 0, testMode: false },
-      { id: crypto.randomUUID(), name: 'UPI', type: 'DIGITAL', gateway: 'NONE', icon: '📱', enabled: true, sortOrder: 1, testMode: false },
-      { id: crypto.randomUUID(), name: 'Card', type: 'CARD', gateway: 'RAZORPAY', icon: '💳', enabled: true, sortOrder: 2, testMode: true },
-      { id: crypto.randomUUID(), name: 'Bank Transfer', type: 'BANK_TRANSFER', gateway: 'NONE', icon: '🏦', enabled: false, sortOrder: 3, testMode: false },
+  const addDefaults = async () => {
+    const defaults = [
+      { name: 'Cash', type: 'CASH', gateway: 'NONE', icon: '💵', enabled: true, testMode: false },
+      { name: 'UPI', type: 'DIGITAL', gateway: 'NONE', icon: '📱', enabled: true, testMode: false },
+      { name: 'Card', type: 'CARD', gateway: 'RAZORPAY', icon: '💳', enabled: true, testMode: true },
+      { name: 'Bank Transfer', type: 'BANK_TRANSFER', gateway: 'NONE', icon: '🏦', enabled: false, testMode: false },
     ];
-    save([...methods, ...defaults]);
+    for (const m of defaults) await settingsApi.createPaymentMethod(m);
+    invalidate();
     toast.success('Added 4 default methods');
   };
 
@@ -875,7 +878,7 @@ function PaymentsTab() {
           </div>
         </div>
 
-        <LocalOnlyBanner />
+        <PersistedBanner />
 
         {adding && (
           <form onSubmit={handleSubmit(onAdd)} className="mt-4 border border-gray-200 rounded-lg p-4 space-y-3 bg-gray-50">
@@ -929,7 +932,7 @@ function PaymentsTab() {
         </div>
       ) : (
         <div className="space-y-2">
-          {methods.map((m, i) => (
+          {methods.map((m: any, i: number) => (
             <div key={m.id} className={`card flex items-center gap-4 ${!m.enabled ? 'opacity-60' : ''}`}>
               <div className="flex flex-col text-gray-400">
                 <button onClick={() => move(m.id, 'up')} disabled={i === 0} className="disabled:opacity-30 text-xs">▲</button>
@@ -956,7 +959,7 @@ function PaymentsTab() {
               </div>
 
               <button
-                onClick={() => toggleEnabled(m.id)}
+                onClick={() => toggleEnabled(m.id, m.enabled)}
                 className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors ${
                   m.enabled ? 'bg-primary-600' : 'bg-gray-200'
                 }`}
@@ -1110,7 +1113,18 @@ function LocalOnlyBanner() {
     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex gap-2">
       <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
       <p className="text-xs text-amber-800">
-        Settings are currently stored locally in your browser. Phase B (backend persistence) is next.
+        Settings are currently stored locally in your browser.
+      </p>
+    </div>
+  );
+}
+
+function PersistedBanner() {
+  return (
+    <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex gap-2">
+      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+      <p className="text-xs text-green-800">
+        Settings are saved on the server and sync across all your devices.
       </p>
     </div>
   );

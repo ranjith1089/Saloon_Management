@@ -80,6 +80,27 @@ enum NotificationChannel {
   PUSH
 }
 
+enum HolidayBehavior {
+  BLOCK
+  REDUCED
+  WARN
+}
+
+enum PaymentMethodType {
+  CASH
+  DIGITAL
+  CARD
+  BANK_TRANSFER
+}
+
+enum PaymentGateway {
+  NONE
+  RAZORPAY
+  STRIPE
+  PAYU
+  PAYPAL
+}
+
 // ============================================
 // USER & AUTH
 // ============================================
@@ -518,4 +539,56 @@ model Review {
   @@index([staffId])
   @@index([serviceId])
   @@map("reviews")
+}
+
+// ============================================
+// SETTINGS (Phase 2 extension)
+// ============================================
+
+// Key-value settings store — one row per setting key.
+// Used for Branding, Currency, and Business config.
+// Type field lets us group related keys (e.g. all "BRANDING" keys)
+model Setting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   // JSON-encoded value
+  type      String   // "BRANDING" | "CURRENCY" | "BUSINESS" | "NOTIFICATIONS" | ...
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@map("settings")
+}
+
+model Holiday {
+  id        String          @id @default(uuid())
+  name      String
+  date      DateTime        @db.Date
+  repeats   Boolean         @default(false)
+  behavior  HolidayBehavior @default(BLOCK)
+  color     String          @default("#ef4444")
+  branchIds String[]        @default([])  // empty = applies to all branches
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([date])
+  @@map("holidays")
+}
+
+model PaymentMethod {
+  id           String            @id @default(uuid())
+  name         String
+  type         PaymentMethodType @default(CASH)
+  gateway      PaymentGateway    @default(NONE)
+  icon         String            @default("💵")
+  enabled      Boolean           @default(true)
+  sortOrder    Int               @default(0)
+  testMode     Boolean           @default(false)
+  apiKey       String?           // Encrypted in production!
+  apiSecret    String?           // Encrypted in production!
+  webhookUrl   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@map("payment_methods")
 }
