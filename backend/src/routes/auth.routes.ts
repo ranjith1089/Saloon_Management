@@ -7,6 +7,7 @@ import {
   loginSchema,
   refreshTokenSchema,
   changePasswordSchema,
+  updateProfileSchema,
 } from '../validators/auth.validator';
 
 const router = Router();
@@ -17,5 +18,6 @@ router.post('/refresh-token', validate(refreshTokenSchema), AuthController.refre
 router.post('/logout', authenticate, AuthController.logout);
 router.post('/change-password', authenticate, validate(changePasswordSchema), AuthController.changePassword);
 router.get('/me', authenticate, AuthController.getMe);
+router.patch('/profile', authenticate, validate(updateProfileSchema), AuthController.updateProfile);
 
 export default router;

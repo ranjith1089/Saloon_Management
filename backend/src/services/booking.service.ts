@@ -1,8 +1,15 @@
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError, ConflictError } from '../utils/ApiError';
-import { BookingStatus } from '@prisma/client';
+import { BookingStatus, Prisma } from '@prisma/client';
 import { NotificationService } from './notification.service';
-import { EarningService } from './finance.service';
+import { CouponService } from './coupon.service';
+
+const BOOKING_INCLUDE = {
+  customer: { include: { profile: true } },
+  staff: { include: { user: { include: { profile: true } } } },
+  branch: true,
+  service: { include: { category: true } },
+} as const;
 
 export class BookingService {
   static async create(data: any) {
@@ -28,39 +35,77 @@ export class BookingService {
     const endMin = totalMinutes % 60;
     const endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
 
-    // Check for conflicts
     const bookingDate = new Date(data.bookingDate);
-    const conflicts = await this.checkConflicts(data.staffId, bookingDate, data.startTime, endTime);
-    if (conflicts.length > 0) {
-      throw new ConflictError('Staff is already booked for this time slot');
+    const subtotal = Number(service.price);
+
+    // Validate coupon (outside transaction to keep it short; final usage check is inside)
+    let couponApplied: { id: string; discount: number } | null = null;
+    if (data.couponCode) {
+      const { coupon, discountAmount } = await CouponService.validate(
+        data.couponCode,
+        subtotal,
+        data.customerId
+      );
+      couponApplied = { id: coupon.id, discount: discountAmount };
     }
 
+    const discountAmount = couponApplied?.discount ?? 0;
+    const totalAmount = Math.max(0, subtotal - discountAmount);
     const bookingNumber = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-    const booking = await prisma.booking.create({
-      data: {
-        bookingNumber,
-        customerId: data.customerId,
-        staffId: data.staffId,
-        branchId: data.branchId,
-        serviceId: data.serviceId,
-        bookingDate,
-        startTime: data.startTime,
-        endTime,
-        status: (data.status as BookingStatus) || 'PENDING',
-        subtotal: service.price,
-        totalAmount: service.price,
-        notes: data.notes,
-      },
-      include: {
-        customer: { include: { profile: true } },
-        staff: { include: { user: { include: { profile: true } } } },
-        branch: true,
-        service: { include: { category: true } },
-      },
-    });
+    // Serializable transaction: conflict check + create + coupon usage bump
+    // must happen atomically or two racing requests can double-book the slot.
+    const booking = await prisma.$transaction(
+      async (tx) => {
+        const conflicts = await this.checkConflicts(
+          data.staffId,
+          bookingDate,
+          data.startTime,
+          endTime,
+          undefined,
+          tx
+        );
+        if (conflicts.length > 0) {
+          throw new ConflictError('Staff is already booked for this time slot');
+        }
 
-    // Notify customer & staff
+        // Re-check coupon usage limit inside the transaction so it can't be over-consumed.
+        if (couponApplied) {
+          const c = await tx.coupon.findUnique({ where: { id: couponApplied.id } });
+          if (!c) throw new BadRequestError('Coupon disappeared');
+          if (c.usageLimit && c.usageCount >= c.usageLimit) {
+            throw new BadRequestError('Coupon usage limit reached');
+          }
+          await tx.coupon.update({
+            where: { id: couponApplied.id },
+            data: { usageCount: { increment: 1 } },
+          });
+        }
+
+        return tx.booking.create({
+          data: {
+            bookingNumber,
+            customerId: data.customerId,
+            staffId: data.staffId,
+            branchId: data.branchId,
+            serviceId: data.serviceId,
+            bookingDate,
+            startTime: data.startTime,
+            endTime,
+            status: (data.status as BookingStatus) || 'PENDING',
+            subtotal,
+            discountAmount,
+            totalAmount,
+            couponId: couponApplied?.id,
+            notes: data.notes,
+          },
+          include: BOOKING_INCLUDE,
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
+
+    // Notifications are best-effort — a failed notification must not roll back the booking.
     await Promise.all([
       NotificationService.create({
         userId: booking.customerId,
@@ -81,8 +126,15 @@ export class BookingService {
     return booking;
   }
 
-  static async checkConflicts(staffId: string, date: Date, startTime: string, endTime: string, excludeId?: string) {
-    return prisma.booking.findMany({
+  static async checkConflicts(
+    staffId: string,
+    date: Date,
+    startTime: string,
+    endTime: string,
+    excludeId?: string,
+    client: Prisma.TransactionClient | typeof prisma = prisma
+  ) {
+    return client.booking.findMany({
       where: {
         staffId,
         bookingDate: date,
@@ -171,42 +223,39 @@ export class BookingService {
   static async update(id: string, data: any) {
     const existing = await this.findById(id);
 
-    // If updating time/date/staff, check for conflicts
-    if (data.startTime || data.staffId || data.bookingDate) {
-      const staffId = data.staffId || existing.staffId;
-      const bookingDate = data.bookingDate ? new Date(data.bookingDate) : existing.bookingDate;
-      const startTime = data.startTime || existing.startTime;
+    // Pre-compute endTime outside the transaction if scheduling fields changed.
+    let endTime = existing.endTime;
+    const needsConflictCheck = !!(data.startTime || data.staffId || data.bookingDate);
+    const staffId = data.staffId || existing.staffId;
+    const bookingDate = data.bookingDate ? new Date(data.bookingDate) : existing.bookingDate;
+    const startTime = data.startTime || existing.startTime;
 
-      let endTime = existing.endTime;
-      if (data.startTime || data.serviceId) {
-        const service = await prisma.service.findUnique({
-          where: { id: data.serviceId || existing.serviceId },
-        });
-        const [sh, sm] = startTime.split(':').map(Number);
-        const total = sh * 60 + sm + (service?.duration || 60);
-        const eh = Math.floor(total / 60);
-        const em = total % 60;
-        endTime = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
-      }
-
-      const conflicts = await this.checkConflicts(staffId, bookingDate, startTime, endTime, id);
-      if (conflicts.length > 0) {
-        throw new ConflictError('Staff has a conflicting booking');
-      }
-
+    if (data.startTime || data.serviceId) {
+      const service = await prisma.service.findUnique({
+        where: { id: data.serviceId || existing.serviceId },
+      });
+      const [sh, sm] = startTime.split(':').map(Number);
+      const total = sh * 60 + sm + (service?.duration || 60);
+      const eh = Math.floor(total / 60);
+      const em = total % 60;
+      endTime = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
       data.endTime = endTime;
     }
 
-    return prisma.booking.update({
-      where: { id },
-      data,
-      include: {
-        customer: { include: { profile: true } },
-        staff: { include: { user: { include: { profile: true } } } },
-        branch: true,
-        service: true,
+    if (!needsConflictCheck) {
+      return prisma.booking.update({ where: { id }, data, include: BOOKING_INCLUDE });
+    }
+
+    return prisma.$transaction(
+      async (tx) => {
+        const conflicts = await this.checkConflicts(staffId, bookingDate, startTime, endTime, id, tx);
+        if (conflicts.length > 0) {
+          throw new ConflictError('Staff has a conflicting booking');
+        }
+        return tx.booking.update({ where: { id }, data, include: BOOKING_INCLUDE });
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+    );
   }
 
   static async updateStatus(id: string, status: BookingStatus, cancelReason?: string) {
@@ -216,35 +265,51 @@ export class BookingService {
       throw new BadRequestError(`Cannot change status of ${booking.status.toLowerCase()} booking`);
     }
 
-    const updated = await prisma.booking.update({
-      where: { id },
-      data: {
-        status,
-        ...(status === 'CANCELLED' && cancelReason && { cancelReason }),
-      },
-      include: {
-        customer: { include: { profile: true } },
-        staff: { include: { user: { include: { profile: true } } } },
-        branch: true,
-        service: true,
-      },
-    });
-
-    // Update customer stats & create earnings when completed
-    if (status === 'COMPLETED') {
-      await prisma.customer.updateMany({
-        where: { userId: booking.customerId },
+    // Status flip + downstream financial writes (earnings, customer stats) must be atomic.
+    // Notifications stay outside — a mail/SMS failure must never roll back the completion.
+    const updated = await prisma.$transaction(async (tx) => {
+      const upd = await tx.booking.update({
+        where: { id },
         data: {
-          totalVisits: { increment: 1 },
-          totalSpent: { increment: booking.totalAmount },
-          loyaltyPoints: { increment: Math.floor(Number(booking.totalAmount) / 10) },
+          status,
+          ...(status === 'CANCELLED' && cancelReason && { cancelReason }),
         },
+        include: BOOKING_INCLUDE,
       });
 
-      // Auto-create staff earning
-      await EarningService.create(id).catch((err) => console.error('Earning creation error:', err));
+      if (status === 'COMPLETED') {
+        await tx.customer.updateMany({
+          where: { userId: booking.customerId },
+          data: {
+            totalVisits: { increment: 1 },
+            totalSpent: { increment: booking.totalAmount },
+            loyaltyPoints: { increment: Math.floor(Number(booking.totalAmount) / 10) },
+          },
+        });
 
-      // Notify customer
+        // Idempotent earning creation (unique on bookingId).
+        const existing = await tx.staffEarning.findUnique({ where: { bookingId: id } });
+        if (!existing) {
+          const commissionRate = Number(upd.staff.commissionRate || 0);
+          const baseAmount = Number(upd.totalAmount);
+          const commissionAmount = (baseAmount * commissionRate) / 100;
+          await tx.staffEarning.create({
+            data: {
+              staffId: upd.staffId,
+              bookingId: id,
+              baseAmount,
+              commissionRate,
+              commissionAmount,
+            },
+          });
+        }
+      }
+
+      return upd;
+    });
+
+    // Best-effort notifications after the transaction commits.
+    if (status === 'COMPLETED') {
       await NotificationService.create({
         userId: booking.customerId,
         title: 'Service Completed',
@@ -253,8 +318,6 @@ export class BookingService {
         data: { bookingId: id },
       }).catch((err) => console.error('Notification error:', err));
     }
-
-    // Notify on cancellation
     if (status === 'CANCELLED') {
       await NotificationService.create({
         userId: booking.customerId,

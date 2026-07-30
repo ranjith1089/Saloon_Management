@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Loader2, Calendar, User, Scissors, Building2 } from 'lucide-react';
+import { Loader2, Calendar, User, Scissors, Building2, Tag, X, Check } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
 
@@ -19,11 +19,19 @@ interface FormValues {
   bookingDate: string;
   startTime: string;
   notes?: string;
+  couponCode?: string;
+}
+
+interface AppliedCoupon {
+  code: string;
+  discountAmount: number;
 }
 
 export default function NewBookingModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
+  const [couponInput, setCouponInput] = useState('');
+  const [applied, setApplied] = useState<AppliedCoupon | null>(null);
 
   const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -34,6 +42,7 @@ export default function NewBookingModal({ open, onClose }: Props) {
       bookingDate: new Date().toISOString().split('T')[0],
       startTime: '10:00',
       notes: '',
+      couponCode: '',
     },
   });
 
@@ -96,9 +105,36 @@ export default function NewBookingModal({ open, onClose }: Props) {
     [services, watchService]
   );
 
+  const validateCouponMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await api.post('/coupons/validate', {
+        code,
+        orderAmount: Number(selectedService?.price || 0),
+        customerId: watch('customerId') || undefined,
+      });
+      return res.data.data as { coupon: { code: string }; discountAmount: number };
+    },
+    onSuccess: (data) => {
+      setApplied({ code: data.coupon.code, discountAmount: Number(data.discountAmount) });
+      setValue('couponCode', data.coupon.code);
+      toast.success(`Coupon applied: -₹${Number(data.discountAmount).toLocaleString()}`);
+    },
+    onError: () => {
+      setApplied(null);
+      setValue('couponCode', '');
+    },
+  });
+
+  const clearCoupon = () => {
+    setApplied(null);
+    setCouponInput('');
+    setValue('couponCode', '');
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const res = await api.post('/bookings', data);
+      const payload = { ...data, couponCode: applied?.code || undefined };
+      const res = await api.post('/bookings', payload);
       return res.data;
     },
     onSuccess: () => {
@@ -112,6 +148,8 @@ export default function NewBookingModal({ open, onClose }: Props) {
   const handleClose = () => {
     reset();
     setStep(1);
+    setApplied(null);
+    setCouponInput('');
     onClose();
   };
 
@@ -329,6 +367,48 @@ export default function NewBookingModal({ open, onClose }: Props) {
             />
           </div>
 
+          {/* Coupon */}
+          <div>
+            <label className="label flex items-center gap-1">
+              <Tag className="w-4 h-4" /> Coupon Code (optional)
+            </label>
+            {applied ? (
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="font-mono font-semibold text-green-900">{applied.code}</span>
+                  <span className="text-green-700">−₹{applied.discountAmount.toLocaleString()}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearCoupon}
+                  className="text-gray-500 hover:text-red-600"
+                  aria-label="Remove coupon"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  className="input flex-1 uppercase"
+                  placeholder="ENTER CODE"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  disabled={!selectedService}
+                />
+                <button
+                  type="button"
+                  onClick={() => couponInput.trim() && validateCouponMutation.mutate(couponInput.trim())}
+                  disabled={!couponInput.trim() || !selectedService || validateCouponMutation.isPending}
+                  className="btn-secondary"
+                >
+                  {validateCouponMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Summary */}
           <div className="bg-gray-50 rounded-lg p-4 space-y-2">
             <p className="text-sm font-medium mb-2">Booking Summary</p>
@@ -347,10 +427,22 @@ export default function NewBookingModal({ open, onClose }: Props) {
                 <span>Duration:</span>
                 <span className="font-medium text-gray-900">{selectedService?.duration} min</span>
               </div>
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span className="font-medium text-gray-900">
+                  ₹{Number(selectedService?.price || 0).toLocaleString()}
+                </span>
+              </div>
+              {applied && (
+                <div className="flex justify-between text-green-700">
+                  <span>Discount ({applied.code}):</span>
+                  <span className="font-medium">−₹{applied.discountAmount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="font-semibold text-gray-900">Total:</span>
                 <span className="font-semibold text-primary-600">
-                  ₹{Number(selectedService?.price || 0).toLocaleString()}
+                  ₹{Math.max(0, Number(selectedService?.price || 0) - (applied?.discountAmount || 0)).toLocaleString()}
                 </span>
               </div>
             </div>

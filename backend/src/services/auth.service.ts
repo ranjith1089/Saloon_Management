@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import prisma from '../config/database';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/ApiError';
-import { RegisterInput, LoginInput } from '../validators/auth.validator';
+import { RegisterInput, LoginInput, UpdateProfileInput } from '../validators/auth.validator';
 import { UserRole } from '@prisma/client';
 
 export class AuthService {
@@ -141,6 +141,28 @@ export class AuthService {
 
     // Invalidate all refresh tokens
     await prisma.refreshToken.deleteMany({ where: { userId } });
+  }
+
+  static async updateProfile(userId: string, data: UpdateProfileInput) {
+    const user = await prisma.user.findUnique({ where: { id: userId }, include: { profile: true } });
+    if (!user) throw new NotFoundError('User not found');
+
+    const { dob, ...rest } = data;
+    const profileData: any = { ...rest };
+    if (dob !== undefined) profileData.dob = dob ? new Date(dob) : null;
+
+    await prisma.userProfile.upsert({
+      where: { userId },
+      update: profileData,
+      create: {
+        userId,
+        firstName: profileData.firstName || user.profile?.firstName || '',
+        lastName: profileData.lastName || user.profile?.lastName || '',
+        ...profileData,
+      },
+    });
+
+    return this.getMe(userId);
   }
 
   static async getMe(userId: string) {

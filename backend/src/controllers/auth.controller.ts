@@ -36,4 +36,9 @@ export class AuthController {
     const user = await AuthService.getMe(req.user!.userId);
     return ApiResponse.success(res, 'User details retrieved', user);
   });
+
+  static updateProfile = asyncHandler(async (req: Request, res: Response) => {
+    const user = await AuthService.updateProfile(req.user!.userId, req.body);
+    return ApiResponse.success(res, 'Profile updated', user);
+  });
 }

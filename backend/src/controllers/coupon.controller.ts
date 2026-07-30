@@ -20,8 +20,11 @@ export class CouponController {
   });
 
   static validate = asyncHandler(async (req: Request, res: Response) => {
-    const { code, orderAmount } = req.body;
-    const result = await CouponService.validate(code, orderAmount, req.user?.userId);
+    const { code, orderAmount, customerId } = req.body;
+    // Admin/manager can validate on behalf of a specific customer for per-user limits;
+    // otherwise fall back to the authenticated user.
+    const userForLimit = customerId || req.user?.userId;
+    const result = await CouponService.validate(code, orderAmount, userForLimit);
     return ApiResponse.success(res, 'Coupon is valid', result);
   });
 

@@ -101,10 +101,13 @@ function ProfileTab() {
 
   const updateMutation = useMutation({
     mutationFn: async (formData: any) => {
-      toast.success('Profile updated (note: dedicated PATCH /auth/profile endpoint recommended for production)');
-      return formData;
+      const res = await api.patch('/auth/profile', formData);
+      return res.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      toast.success('Profile updated');
+      queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
   });
 
   if (isLoading) return <div className="card">Loading...</div>;

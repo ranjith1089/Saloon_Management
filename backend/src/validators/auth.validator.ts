@@ -31,5 +31,22 @@ export const changePasswordSchema = z.object({
   }),
 });
 
+export const updateProfileSchema = z.object({
+  body: z.object({
+    firstName: z.string().min(1).max(80).optional(),
+    lastName: z.string().min(1).max(80).optional(),
+    phone: z.string().max(30).optional().nullable(),
+    avatar: z.string().url().max(500).optional().nullable(),
+    dob: z.string().optional().nullable(),
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional().nullable(),
+    address: z.string().max(255).optional().nullable(),
+    city: z.string().max(80).optional().nullable(),
+    state: z.string().max(80).optional().nullable(),
+    country: z.string().max(80).optional().nullable(),
+    postcode: z.string().max(20).optional().nullable(),
+  }),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>['body'];
 export type LoginInput = z.infer<typeof loginSchema>['body'];
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>['body'];
