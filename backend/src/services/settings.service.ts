@@ -6,9 +6,11 @@ export class SettingsService {
   static async getByType(type: string) {
     const rows = await prisma.setting.findMany({ where: { type } });
     const obj: Record<string, any> = {};
+    const prefix = `${type}.`;
     for (const row of rows) {
-      try { obj[row.key] = JSON.parse(row.value); }
-      catch { obj[row.key] = row.value; }
+      const plainKey = row.key.startsWith(prefix) ? row.key.slice(prefix.length) : row.key;
+      try { obj[plainKey] = JSON.parse(row.value); }
+      catch { obj[plainKey] = row.value; }
     }
     return obj;
   }
