@@ -15,6 +15,7 @@ import reportRoutes from './report.routes';
 import notificationRoutes from './notification.routes';
 import settingsRoutes from './settings.routes';
 import productRoutes, { productSalesRouter } from './product.routes';
+import { plansRouter, membershipsRouter } from './membership.routes';
 
 const router = Router();
 
@@ -54,5 +55,7 @@ router.use('/notifications', notificationRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/products', productRoutes);
 router.use('/product-sales', productSalesRouter);
+router.use('/membership-plans', plansRouter);
+router.use('/memberships', membershipsRouter);
 
 export default router;

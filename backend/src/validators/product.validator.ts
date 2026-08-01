@@ -32,6 +32,7 @@ export const createProductSchema = z.object({
     mrp: money,
     buyPrice: money,
     sellPrice: money,
+    memberPrice: money.nullable().optional(),
     stock: positiveInt.default(0),
     reorderLevel: positiveInt.default(5),
     expiryDate: z.string().optional().nullable(),

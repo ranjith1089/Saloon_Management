@@ -3,6 +3,7 @@ import { NotFoundError, BadRequestError, ConflictError } from '../utils/ApiError
 import { BookingStatus, Prisma } from '@prisma/client';
 import { NotificationService } from './notification.service';
 import { CouponService } from './coupon.service';
+import { MembershipService } from './membership.service';
 
 const BOOKING_INCLUDE = {
   customer: { include: { profile: true } },
@@ -36,7 +37,13 @@ export class BookingService {
     const endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
 
     const bookingDate = new Date(data.bookingDate);
-    const subtotal = Number(service.price);
+
+    // Member pricing — if the customer has an active membership AND the service
+    // has a memberPrice, use it. Otherwise fall back to the regular price.
+    const activeMembership = await MembershipService.getActiveForCustomer(data.customerId);
+    const useMemberPrice =
+      !!activeMembership && service.memberPrice !== null && service.memberPrice !== undefined;
+    const subtotal = Number(useMemberPrice ? service.memberPrice! : service.price);
 
     // Validate coupon (outside transaction to keep it short; final usage check is inside)
     let couponApplied: { id: string; discount: number } | null = null;

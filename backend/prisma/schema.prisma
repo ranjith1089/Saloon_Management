@@ -101,6 +101,12 @@ enum PaymentGateway {
   PAYPAL
 }
 
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
 // ============================================
 // USER & AUTH
 // ============================================
@@ -123,6 +129,7 @@ model User {
   refreshTokens    RefreshToken[]
   notifications    Notification[]
   productSales     ProductSale[] @relation("CustomerProductSales")
+  memberships      Membership[]  @relation("CustomerMemberships")
 
   @@index([email])
   @@index([role])
@@ -254,6 +261,7 @@ model Service {
   name        String
   description String?
   price       Decimal  @db.Decimal(10, 2)
+  memberPrice Decimal? @db.Decimal(10, 2)  // Optional member price. Null = same as regular.
   duration    Int      // in minutes
   categoryId  String
   image       String?
@@ -631,6 +639,7 @@ model Product {
   mrp          Decimal   @db.Decimal(10, 2)
   buyPrice     Decimal   @db.Decimal(10, 2)
   sellPrice    Decimal   @db.Decimal(10, 2)
+  memberPrice  Decimal?  @db.Decimal(10, 2)   // Member price. Null = same as sellPrice.
   stock        Int       @default(0)
   reorderLevel Int       @default(5)
   expiryDate   DateTime?
@@ -695,4 +704,47 @@ model ProductSaleItem {
   @@index([saleId])
   @@index([productId])
   @@map("product_sale_items")
+}
+
+// ============================================
+// MEMBERSHIPS
+// ============================================
+
+model MembershipPlan {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  price        Decimal  @db.Decimal(10, 2)   // Fee the customer pays to join
+  durationDays Int                             // 30 / 90 / 365 …
+  color        String   @default("#dc2626")
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+
+  @@map("membership_plans")
+}
+
+model Membership {
+  id            String           @id @default(uuid())
+  customerId    String                          // FK -> User
+  planId        String
+  startDate     DateTime
+  endDate       DateTime
+  paidAmount    Decimal          @db.Decimal(10, 2)
+  paymentMethod String?
+  status        MembershipStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  customer User           @relation("CustomerMemberships", fields: [customerId], references: [id])
+  plan     MembershipPlan @relation(fields: [planId], references: [id])
+
+  @@index([customerId])
+  @@index([endDate])
+  @@index([status])
+  @@map("memberships")
 }

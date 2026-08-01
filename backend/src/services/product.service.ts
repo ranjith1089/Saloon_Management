@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError, ConflictError } from '../utils/ApiError';
 import { Prisma } from '@prisma/client';
+import { MembershipService } from './membership.service';
 
 // ============ CATEGORY ============
 export class ProductCategoryService {
@@ -147,6 +148,13 @@ export class ProductSaleService {
   static async create(data: any) {
     const saleNumber = `PS${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
+    // Lookup active membership once outside the transaction so we can pick the
+    // right per-item unit price. Nothing here mutates state.
+    const activeMembership = data.customerId
+      ? await MembershipService.getActiveForCustomer(data.customerId)
+      : null;
+    const applyMemberPrice = !!activeMembership;
+
     // Serializable transaction: validate + decrement stock + create sale + create earning
     // atomically so two concurrent sales can't oversell a low-stock product.
     return prisma.$transaction(
@@ -175,7 +183,9 @@ export class ProductSaleService {
           if (p.stock < item.quantity) {
             throw new ConflictError(`Insufficient stock for "${p.name}" (available: ${p.stock}, requested: ${item.quantity})`);
           }
-          const unitPrice = item.unitPrice ?? Number(p.sellPrice);
+          const memberEligible = applyMemberPrice && p.memberPrice !== null && p.memberPrice !== undefined;
+          const defaultUnitPrice = memberEligible ? Number(p.memberPrice) : Number(p.sellPrice);
+          const unitPrice = item.unitPrice ?? defaultUnitPrice;
           const lineSubtotal = unitPrice * item.quantity;
           subtotal += lineSubtotal;
           decrementedItems.push({
