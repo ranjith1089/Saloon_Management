@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { TaxService, EarningService, PayoutService } from '../services/finance.service';
+import { CommissionService } from '../services/commission.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
 
@@ -71,5 +72,31 @@ export class PayoutController {
   static cancel = asyncHandler(async (req: Request, res: Response) => {
     const payout = await PayoutService.cancel(req.params.id);
     return ApiResponse.success(res, 'Payout cancelled', payout);
+  });
+}
+
+export class CommissionController {
+  // GET /finance/commissions/summary?year=&month=&branchId=
+  static summary = asyncHandler(async (req: Request, res: Response) => {
+    const now = new Date();
+    const year = parseInt((req.query.year as string) || String(now.getUTCFullYear()), 10);
+    const month = parseInt((req.query.month as string) || String(now.getUTCMonth() + 1), 10);
+    const branchId = (req.query.branchId as string) || undefined;
+    const summaries = await CommissionService.monthlySummaryForAll(year, month, branchId);
+    return ApiResponse.success(res, 'Monthly commission summary', {
+      year,
+      month,
+      branchId: branchId || null,
+      summaries,
+    });
+  });
+
+  // GET /finance/commissions/staff/:staffId?year=&month=
+  static staffSummary = asyncHandler(async (req: Request, res: Response) => {
+    const now = new Date();
+    const year = parseInt((req.query.year as string) || String(now.getUTCFullYear()), 10);
+    const month = parseInt((req.query.month as string) || String(now.getUTCMonth() + 1), 10);
+    const summary = await CommissionService.monthlySummaryForStaff(req.params.staffId, year, month);
+    return ApiResponse.success(res, 'Staff monthly commission', summary);
   });
 }

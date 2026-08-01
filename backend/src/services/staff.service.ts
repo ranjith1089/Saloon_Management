@@ -17,6 +17,7 @@ export class StaffService {
         designation: data.designation,
         salary: data.salary,
         commissionRate: data.commissionRate,
+        monthlyTarget: data.monthlyTarget ?? null,
         bio: data.bio,
         experience: data.experience,
         isVerified: data.isVerified ?? false,

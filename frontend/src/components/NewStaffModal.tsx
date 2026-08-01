@@ -21,6 +21,7 @@ export default function NewStaffModal({ open, onClose }: Props) {
       designation: '',
       salary: 0,
       commissionRate: 10,
+      monthlyTarget: 0,
       experience: 0,
       bio: '',
       isVerified: true,
@@ -51,6 +52,7 @@ export default function NewStaffModal({ open, onClose }: Props) {
       ...data,
       salary: Number(data.salary),
       commissionRate: Number(data.commissionRate),
+      monthlyTarget: Number(data.monthlyTarget) || null,
       experience: Number(data.experience),
     }),
     onSuccess: () => {
@@ -166,6 +168,14 @@ export default function NewStaffModal({ open, onClose }: Props) {
             <label className="label">Experience (yrs)</label>
             <input type="number" min="0" className="input" {...register('experience')} />
           </div>
+        </div>
+
+        <div>
+          <label className="label">Monthly Revenue Target (₹)</label>
+          <input type="number" min="0" step="100" className="input" {...register('monthlyTarget')} placeholder="0 = flat commission on every sale" />
+          <p className="text-xs text-gray-500 mt-1">
+            Commission is paid only on revenue above this target. Set 0 for flat commission.
+          </p>
         </div>
 
         <div>

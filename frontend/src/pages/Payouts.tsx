@@ -212,7 +212,26 @@ function NewPayoutModal({ open, onClose }: { open: boolean; onClose: () => void 
   const periodStart = watch('periodStart');
   const periodEnd = watch('periodEnd');
 
-  // Preview pending earnings for the selected staff+period
+  // Detect whether the picked range covers a single calendar month — if so,
+  // pull the target-aware payable amount from the commissions endpoint.
+  const monthAlignment = (() => {
+    if (!periodStart || !periodEnd) return null;
+    const s = new Date(periodStart);
+    const e = new Date(periodEnd);
+    if (s.getFullYear() !== e.getFullYear() || s.getMonth() !== e.getMonth()) return null;
+    return { year: s.getFullYear(), month: s.getMonth() + 1 };
+  })();
+
+  const { data: monthlySummary } = useQuery({
+    queryKey: ['staff-commission', staffId, monthAlignment?.year, monthAlignment?.month],
+    queryFn: async () =>
+      (await api.get(`/finance/commissions/staff/${staffId}`, {
+        params: { year: monthAlignment!.year, month: monthAlignment!.month },
+      })).data.data,
+    enabled: open && !!staffId && !!monthAlignment,
+  });
+
+  // Fallback: preview flat-sum of pending earnings for the period.
   const { data: earningsPreview } = useQuery({
     queryKey: ['earnings-preview', staffId, periodStart, periodEnd],
     queryFn: async () =>
@@ -222,8 +241,15 @@ function NewPayoutModal({ open, onClose }: { open: boolean; onClose: () => void 
     enabled: open && !!staffId && !!periodStart && !!periodEnd,
   });
 
-  const previewTotal = Number(earningsPreview?.summary?.totalCommission || 0);
-  const previewCount = earningsPreview?.earnings?.length || 0;
+  const useTargetAware = monthlySummary && monthlySummary.monthlyTarget > 0;
+  const previewTotal = useTargetAware
+    ? Number(monthlySummary.payableCommission || 0)
+    : Number(earningsPreview?.summary?.totalCommission || 0);
+  const previewCount = useTargetAware
+    ? monthlySummary.targetMet
+      ? 1 // target met — we'll create one payout for the excess
+      : 0
+    : earningsPreview?.earnings?.length || 0;
 
   const create = useMutation({
     mutationFn: async (data: any) => api.post('/finance/payouts', data),
@@ -298,15 +324,35 @@ function NewPayoutModal({ open, onClose }: { open: boolean; onClose: () => void 
         {staffId && (
           <div
             className={`rounded-lg p-4 ${
-              previewCount === 0 ? 'bg-amber-50 border border-amber-200' : 'bg-primary-50 border border-primary-200'
+              previewTotal <= 0 ? 'bg-amber-50 border border-amber-200' : 'bg-primary-50 border border-primary-200'
             }`}
           >
-            {previewCount === 0 ? (
+            {useTargetAware ? (
+              // Target-aware preview
+              <div className="space-y-1.5 text-sm">
+                <p className="font-medium text-gray-900">Target-aware calculation (single month)</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                  <div className="flex justify-between"><span>Achieved:</span><span className="font-medium">₹{Number(monthlySummary.achieved).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Target:</span><span className="font-medium">₹{Number(monthlySummary.monthlyTarget).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Excess:</span><span className="font-medium">₹{Number(monthlySummary.excess).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Rate:</span><span className="font-medium">{monthlySummary.commissionRate}%</span></div>
+                </div>
+                {monthlySummary.targetMet ? (
+                  <p className="pt-1 border-t border-primary-200 text-primary-900">
+                    Payable: <span className="font-semibold">₹{previewTotal.toLocaleString()}</span>
+                  </p>
+                ) : (
+                  <p className="pt-1 border-t border-amber-300 text-amber-800">
+                    Below target — no commission payable this month.
+                  </p>
+                )}
+              </div>
+            ) : previewCount === 0 ? (
               <p className="text-sm text-amber-800">No pending earnings in the selected period.</p>
             ) : (
               <div className="space-y-1">
                 <p className="text-sm font-medium text-primary-900">
-                  {previewCount} pending earning{previewCount === 1 ? '' : 's'} will be batched.
+                  Flat calculation — {previewCount} pending earning{previewCount === 1 ? '' : 's'} will be batched.
                 </p>
                 <p className="text-sm text-primary-700">
                   Total commission: <span className="font-semibold">₹{previewTotal.toLocaleString()}</span>

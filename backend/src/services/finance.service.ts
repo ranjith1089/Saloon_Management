@@ -1,6 +1,7 @@
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError } from '../utils/ApiError';
 import { PayoutStatus } from '@prisma/client';
+import { CommissionService } from './commission.service';
 
 // ============ TAX ============
 export class TaxService {
@@ -123,7 +124,12 @@ export class PayoutService {
     const periodStart = new Date(data.periodStart);
     const periodEnd = new Date(data.periodEnd);
 
-    // Fetch all pending earnings in the period
+    // Target-aware payout amount. If staff has a monthly target and the period
+    // aligns to a single month, use excess * rate. Otherwise fall back to summing
+    // the raw StaffEarning rows in the period (existing flat behavior).
+    const calc = await CommissionService.payableForPeriod(data.staffId, periodStart, periodEnd);
+
+    // Still link the underlying StaffEarning rows so they can't be double-paid.
     const pendingEarnings = await prisma.staffEarning.findMany({
       where: {
         staffId: data.staffId,
@@ -132,35 +138,37 @@ export class PayoutService {
       },
     });
 
-    if (pendingEarnings.length === 0) {
-      throw new BadRequestError('No pending earnings found for this period');
+    if (calc.payable <= 0) {
+      const reason =
+        calc.method === 'target-aware'
+          ? `Staff has not met the monthly target of ₹${calc.target.toLocaleString()} (achieved ₹${calc.achieved.toLocaleString()})`
+          : 'No pending commission for this period';
+      throw new BadRequestError(reason);
     }
 
-    const totalAmount = pendingEarnings.reduce(
-      (sum, e) => sum + Number(e.commissionAmount),
-      0
-    );
+    return prisma.$transaction(async (tx) => {
+      const payout = await tx.payout.create({
+        data: {
+          staffId: data.staffId,
+          amount: calc.payable,
+          periodStart,
+          periodEnd,
+          paymentMethod: data.paymentMethod,
+          reference: data.reference,
+          notes: buildPayoutNotes(data.notes, calc),
+          status: 'PROCESSING',
+        },
+      });
 
-    const payout = await prisma.payout.create({
-      data: {
-        staffId: data.staffId,
-        amount: totalAmount,
-        periodStart,
-        periodEnd,
-        paymentMethod: data.paymentMethod,
-        reference: data.reference,
-        notes: data.notes,
-        status: 'PROCESSING',
-      },
+      if (pendingEarnings.length > 0) {
+        await tx.staffEarning.updateMany({
+          where: { id: { in: pendingEarnings.map((e) => e.id) } },
+          data: { payoutId: payout.id, payoutStatus: 'PROCESSING' },
+        });
+      }
+
+      return payout;
     });
-
-    // Link earnings to payout
-    await prisma.staffEarning.updateMany({
-      where: { id: { in: pendingEarnings.map((e) => e.id) } },
-      data: { payoutId: payout.id, payoutStatus: 'PROCESSING' },
-    });
-
-    return payout;
   }
 
   static async findAll(query: any) {
@@ -244,4 +252,17 @@ export class PayoutService {
       data: { status: 'FAILED' as PayoutStatus },
     });
   }
+}
+
+function buildPayoutNotes(userNotes: string | undefined, calc: { method: string; target: number; excess: number; achieved: number }) {
+  const parts: string[] = [];
+  if (userNotes) parts.push(userNotes);
+  if (calc.method === 'target-aware') {
+    parts.push(
+      `[target-aware] achieved ₹${calc.achieved.toLocaleString()}, target ₹${calc.target.toLocaleString()}, excess ₹${calc.excess.toLocaleString()}`
+    );
+  } else {
+    parts.push('[flat] sum of pending earnings in period');
+  }
+  return parts.join(' · ');
 }

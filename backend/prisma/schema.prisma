@@ -295,6 +295,7 @@ model Staff {
   joiningDate    DateTime @default(now())
   salary         Decimal? @db.Decimal(10, 2)
   commissionRate Decimal? @db.Decimal(5, 2)  // Percentage
+  monthlyTarget  Decimal? @db.Decimal(10, 2) // Revenue target; commission is paid only on the portion above target. Null or 0 = no target (flat commission).
   isVerified     Boolean  @default(false)
   bio            String?
   experience     Int?     // in years

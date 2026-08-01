@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { TaxController, EarningController, PayoutController } from '../controllers/finance.controller';
+import { TaxController, EarningController, PayoutController, CommissionController } from '../controllers/finance.controller';
 import { authenticate, authorize } from '../middlewares/auth';
 
 const router = Router();
@@ -24,5 +24,9 @@ router.get('/payouts', authorize('ADMIN', 'MANAGER'), PayoutController.findAll);
 router.get('/payouts/:id', PayoutController.findById);
 router.patch('/payouts/:id/pay', authorize('ADMIN'), PayoutController.markAsPaid);
 router.patch('/payouts/:id/cancel', authorize('ADMIN'), PayoutController.cancel);
+
+// Commissions (target-aware)
+router.get('/commissions/summary', authorize('ADMIN', 'MANAGER'), CommissionController.summary);
+router.get('/commissions/staff/:staffId', CommissionController.staffSummary);
 
 export default router;
