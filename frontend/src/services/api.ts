@@ -91,6 +91,12 @@ api.interceptors.response.use(
       message = 'API URL misconfigured (405). Check that VITE_API_URL includes https:// and the correct path.';
     } else if (error.response?.data?.message) {
       message = error.response.data.message;
+      // Append the diagnostic detail when the backend sends one (Prisma errors,
+      // unexpected 500s, etc.). Keeps the toast short but useful.
+      const detail = error.response.data.detail;
+      if (detail && typeof detail === 'string') {
+        message = `${message}: ${detail}`;
+      }
     }
 
     if (error.response?.status !== 401) {
