@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
-  Search, Package, Plus, Minus, Trash2, X, User, Building2, CreditCard,
-  Receipt, Loader2, ShoppingCart, Ban,
+  Search, Package, Plus, Minus, X, User, Building2, CreditCard,
+  Receipt, Loader2, ShoppingCart, Ban, Crown,
 } from 'lucide-react';
 import api from '@/services/api';
 import Modal from '@/components/Modal';
@@ -49,6 +49,12 @@ export default function ProductSales() {
     queryFn: async () => (await api.get('/customers?limit=200')).data.data,
   });
 
+  const { data: activeMembership } = useQuery({
+    queryKey: ['active-membership', customerId],
+    queryFn: async () => (await api.get(`/memberships/active/${customerId}`)).data.data,
+    enabled: !!customerId,
+  });
+
   const { data: staffList } = useQuery({
     queryKey: ['staff-select-pos', branchId],
     queryFn: async () => {
@@ -69,6 +75,11 @@ export default function ProductSales() {
     },
   });
 
+  const priceFor = (p: any) =>
+    activeMembership && p.memberPrice !== null && p.memberPrice !== undefined
+      ? Number(p.memberPrice)
+      : Number(p.sellPrice);
+
   const addToCart = (p: any) => {
     if (p.stock <= 0) {
       toast.error(`${p.name} is out of stock`);
@@ -85,9 +96,20 @@ export default function ProductSales() {
       }
       return [
         ...prev,
-        { productId: p.id, name: p.name, unitPrice: Number(p.sellPrice), stock: p.stock, quantity: 1 },
+        { productId: p.id, name: p.name, unitPrice: priceFor(p), stock: p.stock, quantity: 1 },
       ];
     });
+  };
+
+  // When customer changes (and thus membership status), re-price everything in the cart.
+  const repriceCart = () => {
+    if (!products) return;
+    setCart((prev) =>
+      prev.map((l) => {
+        const p = products.find((pp: any) => pp.id === l.productId);
+        return p ? { ...l, unitPrice: priceFor(p) } : l;
+      })
+    );
   };
 
   const updateQty = (productId: string, delta: number) => {
@@ -280,7 +302,15 @@ export default function ProductSales() {
                   <div className="p-4 space-y-3 border-t border-gray-100 bg-gray-50">
                     <div>
                       <label className="label text-xs flex items-center gap-1"><User className="w-3 h-3" /> Customer (optional)</label>
-                      <select className="input !py-1.5 text-sm" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                      <select
+                        className="input !py-1.5 text-sm"
+                        value={customerId}
+                        onChange={(e) => {
+                          setCustomerId(e.target.value);
+                          // Give the membership query a beat to refresh before repricing.
+                          setTimeout(repriceCart, 250);
+                        }}
+                      >
                         <option value="">Walk-in</option>
                         {customers?.map((c: any) => (
                           <option key={c.userId} value={c.userId}>
@@ -288,6 +318,14 @@ export default function ProductSales() {
                           </option>
                         ))}
                       </select>
+                      {activeMembership && (
+                        <div className="mt-1.5 flex items-center gap-1 px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                          <Crown className="w-3 h-3" />
+                          <span className="font-medium">MEMBER</span>
+                          <span>· {activeMembership.plan?.name}</span>
+                          <span className="ml-auto">member prices applied</span>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="label text-xs">Sold by (staff, optional — earns commission)</label>

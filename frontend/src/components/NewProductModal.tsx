@@ -29,6 +29,7 @@ export default function NewProductModal({ open, onClose, product }: Props) {
       mrp: 0,
       buyPrice: 0,
       sellPrice: 0,
+      memberPrice: '' as any,
       stock: 0,
       reorderLevel: 5,
       expiryDate: '',
@@ -50,6 +51,7 @@ export default function NewProductModal({ open, onClose, product }: Props) {
         mrp: Number(product.mrp || 0),
         buyPrice: Number(product.buyPrice || 0),
         sellPrice: Number(product.sellPrice || 0),
+        memberPrice: product.memberPrice !== null && product.memberPrice !== undefined ? Number(product.memberPrice) : '',
         stock: product.stock || 0,
         reorderLevel: product.reorderLevel || 5,
         expiryDate: product.expiryDate ? product.expiryDate.split('T')[0] : '',
@@ -81,6 +83,7 @@ export default function NewProductModal({ open, onClose, product }: Props) {
         mrp: Number(data.mrp),
         buyPrice: Number(data.buyPrice),
         sellPrice: Number(data.sellPrice),
+        memberPrice: data.memberPrice === '' || data.memberPrice === null ? null : Number(data.memberPrice),
         stock: Number(data.stock),
         reorderLevel: Number(data.reorderLevel),
       };
@@ -179,7 +182,7 @@ export default function NewProductModal({ open, onClose, product }: Props) {
 
         <h3 className="text-sm font-semibold text-gray-700 border-b pb-2 pt-2">Pricing</h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <label className="label">MRP *</label>
             <input type="number" min="0" step="0.01" className="input" {...register('mrp', { required: true, min: 0 })} />
@@ -191,6 +194,11 @@ export default function NewProductModal({ open, onClose, product }: Props) {
           <div>
             <label className="label">Sell Price *</label>
             <input type="number" min="0" step="0.01" className="input" {...register('sellPrice', { required: true, min: 0 })} />
+          </div>
+          <div>
+            <label className="label">Member Price</label>
+            <input type="number" min="0" step="0.01" className="input" {...register('memberPrice')} placeholder="blank" />
+            <p className="text-[11px] text-gray-500 mt-1">Blank = same as sell</p>
           </div>
         </div>
 

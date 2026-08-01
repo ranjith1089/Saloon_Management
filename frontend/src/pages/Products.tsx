@@ -146,6 +146,7 @@ export default function Products() {
                 <th className="text-right px-4 py-3 font-medium text-gray-700">MRP</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-700">Buy</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-700">Sell</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-700">Member</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-700">Stock</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Expiry</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Branch</th>
@@ -154,9 +155,9 @@ export default function Products() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {isLoading ? (
-                <tr><td colSpan={9} className="text-center py-8 text-gray-500">Loading…</td></tr>
+                <tr><td colSpan={10} className="text-center py-8 text-gray-500">Loading…</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={9} className="text-center py-10 text-gray-500">
+                <tr><td colSpan={10} className="text-center py-10 text-gray-500">
                   <Package className="w-12 h-12 mx-auto text-gray-300 mb-2" />
                   <p>No products found</p>
                   <button onClick={openNew} className="btn-primary mt-3"><Plus className="w-4 h-4 mr-1" />Add Product</button>
@@ -186,6 +187,13 @@ export default function Products() {
                       <td className="px-4 py-3 text-right text-gray-500 line-through">₹{Number(p.mrp).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right">₹{Number(p.buyPrice).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right font-semibold text-primary-600">₹{Number(p.sellPrice).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right">
+                        {p.memberPrice !== null && p.memberPrice !== undefined ? (
+                          <span className="font-semibold text-amber-700">₹{Number(p.memberPrice).toLocaleString()}</span>
+                        ) : (
+                          <span className="text-xs text-gray-400">same</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <span className={`inline-block px-2 py-0.5 rounded font-medium ${low ? 'bg-yellow-100 text-yellow-800' : 'text-gray-700'}`}>
                           {p.stock}

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Loader2, Calendar, User, Scissors, Building2, Tag, X, Check } from 'lucide-react';
+import { Loader2, Calendar, User, Scissors, Building2, Tag, X, Check, Crown } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
 
@@ -50,6 +50,7 @@ export default function NewBookingModal({ open, onClose }: Props) {
   const watchService = watch('serviceId');
   const watchStaff = watch('staffId');
   const watchDate = watch('bookingDate');
+  const watchCustomer = watch('customerId');
 
   // Load dropdowns
   const { data: branches } = useQuery({
@@ -104,6 +105,21 @@ export default function NewBookingModal({ open, onClose }: Props) {
     () => services?.find((s: any) => s.id === watchService),
     [services, watchService]
   );
+
+  // Active membership lookup for the picked customer — switches shown price to memberPrice.
+  const { data: activeMembership } = useQuery({
+    queryKey: ['active-membership', watchCustomer],
+    queryFn: async () => (await api.get(`/memberships/active/${watchCustomer}`)).data.data,
+    enabled: open && !!watchCustomer,
+  });
+
+  const useMemberPrice =
+    !!activeMembership &&
+    selectedService?.memberPrice !== null &&
+    selectedService?.memberPrice !== undefined;
+  const effectivePrice = useMemberPrice
+    ? Number(selectedService.memberPrice)
+    : Number(selectedService?.price || 0);
 
   const validateCouponMutation = useMutation({
     mutationFn: async (code: string) => {
@@ -427,10 +443,23 @@ export default function NewBookingModal({ open, onClose }: Props) {
                 <span>Duration:</span>
                 <span className="font-medium text-gray-900">{selectedService?.duration} min</span>
               </div>
+              {activeMembership && (
+                <div className="flex items-center gap-1 py-1 px-2 rounded bg-amber-50 border border-amber-200 text-amber-900 text-[11px]">
+                  <Crown className="w-3 h-3" />
+                  <span className="font-medium">MEMBER</span>
+                  <span>· {activeMembership.plan?.name}</span>
+                  {useMemberPrice && <span className="ml-auto">member price applied</span>}
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>Subtotal:</span>
                 <span className="font-medium text-gray-900">
-                  ₹{Number(selectedService?.price || 0).toLocaleString()}
+                  {useMemberPrice && (
+                    <span className="text-gray-400 line-through mr-1 text-[11px]">
+                      ₹{Number(selectedService?.price || 0).toLocaleString()}
+                    </span>
+                  )}
+                  ₹{effectivePrice.toLocaleString()}
                 </span>
               </div>
               {applied && (
@@ -442,7 +471,7 @@ export default function NewBookingModal({ open, onClose }: Props) {
               <div className="flex justify-between pt-2 border-t border-gray-200">
                 <span className="font-semibold text-gray-900">Total:</span>
                 <span className="font-semibold text-primary-600">
-                  ₹{Math.max(0, Number(selectedService?.price || 0) - (applied?.discountAmount || 0)).toLocaleString()}
+                  ₹{Math.max(0, effectivePrice - (applied?.discountAmount || 0)).toLocaleString()}
                 </span>
               </div>
             </div>

@@ -14,6 +14,7 @@ export default function NewServiceModal({ open, onClose }: Props) {
       name: '',
       description: '',
       price: 0,
+      memberPrice: '' as any,
       duration: 30,
       categoryId: '',
       status: true,
@@ -39,6 +40,7 @@ export default function NewServiceModal({ open, onClose }: Props) {
     mutationFn: (data: any) => api.post('/services', {
       ...data,
       price: Number(data.price),
+      memberPrice: data.memberPrice === '' || data.memberPrice === null ? null : Number(data.memberPrice),
       duration: Number(data.duration),
     }),
     onSuccess: () => {
@@ -91,11 +93,16 @@ export default function NewServiceModal({ open, onClose }: Props) {
           <textarea className="input" rows={2} {...register('description')} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div>
             <label className="label">Price (₹) *</label>
             <input type="number" step="0.01" min="0" className="input" {...register('price', { required: true, min: 0.01 })} />
             {errors.price && <p className="text-xs text-red-600 mt-1">Must be positive</p>}
+          </div>
+          <div>
+            <label className="label">Member Price (₹)</label>
+            <input type="number" step="0.01" min="0" className="input" {...register('memberPrice')} placeholder="blank = same" />
+            <p className="text-[11px] text-gray-500 mt-1">Blank = same as regular</p>
           </div>
           <div>
             <label className="label">Duration (min) *</label>

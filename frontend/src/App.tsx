@@ -15,6 +15,7 @@ import Earnings from '@/pages/Earnings';
 import Payouts from '@/pages/Payouts';
 import Products from '@/pages/Products';
 import ProductSales from '@/pages/ProductSales';
+import Memberships from '@/pages/Memberships';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/products" element={<Products />} />
         <Route path="/product-sales" element={<ProductSales />} />
+        <Route path="/memberships" element={<Memberships />} />
         <Route path="/coupons" element={<Coupons />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/reports" element={<Reports />} />

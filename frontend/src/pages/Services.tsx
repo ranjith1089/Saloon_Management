@@ -33,7 +33,8 @@ export default function Services() {
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Service Name</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Category</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-700">Price</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">Regular Price</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-700">Member Price</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Duration</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Branches</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-700">Status</th>
@@ -41,7 +42,7 @@ export default function Services() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {isLoading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-gray-500">Loading...</td></tr>
+                <tr><td colSpan={7} className="text-center py-8 text-gray-500">Loading...</td></tr>
               ) : (
                 data?.data?.map((service: any) => (
                   <tr key={service.id} className="hover:bg-gray-50">
@@ -51,6 +52,13 @@ export default function Services() {
                       {service.category?.name}
                     </td>
                     <td className="px-4 py-3 font-semibold text-primary-600">₹{Number(service.price).toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      {service.memberPrice !== null && service.memberPrice !== undefined ? (
+                        <span className="font-semibold text-amber-700">₹{Number(service.memberPrice).toLocaleString()}</span>
+                      ) : (
+                        <span className="text-xs text-gray-400">same</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1 text-gray-600">
                         <Clock className="w-3 h-3" />
