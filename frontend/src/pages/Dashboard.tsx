@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, DollarSign, Users, TrendingUp } from 'lucide-react';
+import { Calendar, DollarSign, Users, TrendingUp, ShoppingBag } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import api from '@/services/api';
 
@@ -9,6 +9,8 @@ interface Stats {
     totalRevenue: number;
     salesCommissions: number;
     totalCustomers: number;
+    productRevenue?: number;
+    productSales?: number;
   };
   upcomingBookings: any[];
   topServices: any[];
@@ -33,7 +35,14 @@ export default function Dashboard() {
 
   const statCards = [
     { label: 'Appointments', value: data?.metrics.totalAppointments || 0, icon: Calendar, color: 'blue' },
-    { label: 'Total Revenue', value: `₹${Number(data?.metrics.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'green' },
+    { label: 'Service Revenue', value: `₹${Number(data?.metrics.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'green' },
+    {
+      label: 'Product Revenue',
+      value: `₹${Number(data?.metrics.productRevenue || 0).toLocaleString()}`,
+      icon: ShoppingBag,
+      color: 'pink',
+      sub: `${data?.metrics.productSales || 0} sales`,
+    },
     { label: 'Sales Commissions', value: `₹${Number(data?.metrics.salesCommissions || 0).toLocaleString()}`, icon: TrendingUp, color: 'purple' },
     { label: 'Customers', value: data?.metrics.totalCustomers || 0, icon: Users, color: 'orange' },
   ];
@@ -43,6 +52,7 @@ export default function Dashboard() {
     green: 'bg-green-100 text-green-600',
     purple: 'bg-purple-100 text-purple-600',
     orange: 'bg-orange-100 text-orange-600',
+    pink: 'bg-pink-100 text-pink-600',
   };
 
   return (
@@ -53,15 +63,16 @@ export default function Dashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {statCards.map((stat) => (
           <div key={stat.label} className="card">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1">{isLoading ? '...' : stat.value}</p>
+              <div className="min-w-0">
+                <p className="text-sm text-gray-500 truncate">{stat.label}</p>
+                <p className="text-2xl font-bold mt-1 truncate">{isLoading ? '...' : stat.value}</p>
+                {(stat as any).sub && <p className="text-xs text-gray-400 mt-0.5">{(stat as any).sub}</p>}
               </div>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClasses[stat.color]}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
                 <stat.icon className="w-6 h-6" />
               </div>
             </div>

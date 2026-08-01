@@ -19,6 +19,8 @@ import {
   Star,
   DollarSign,
   Wallet,
+  Package,
+  ShoppingBag,
   Bell,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -31,6 +33,8 @@ const menuItems = [
   { path: '/branches', label: 'Branches', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
   { path: '/services', label: 'Services', icon: Scissors, roles: ['ADMIN', 'MANAGER'] },
   { path: '/staff', label: 'Staff', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/products', label: 'Products', icon: Package, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/product-sales', label: 'Product Sales', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
   { path: '/customers', label: 'Customers', icon: UserCircle },
   { path: '/earnings', label: 'Earnings', icon: DollarSign, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
   { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER'] },
