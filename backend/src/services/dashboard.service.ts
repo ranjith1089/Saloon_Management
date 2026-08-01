@@ -11,6 +11,12 @@ export class DashboardService {
     };
     if (branchId) bookingWhere.branchId = branchId;
 
+    const productSaleWhere: any = {
+      createdAt: { gte: startDate, lte: endDate },
+      voidedAt: null,
+    };
+    if (branchId) productSaleWhere.branchId = branchId;
+
     const [
       totalBookings,
       totalRevenue,
@@ -18,6 +24,8 @@ export class DashboardService {
       totalCommissions,
       upcomingBookings,
       topServices,
+      productRevenue,
+      totalProductSales,
     ] = await Promise.all([
       prisma.booking.count({ where: bookingWhere }),
       prisma.booking.aggregate({
@@ -54,6 +62,11 @@ export class DashboardService {
         orderBy: { _count: { serviceId: 'desc' } },
         take: 5,
       }),
+      prisma.productSale.aggregate({
+        where: productSaleWhere,
+        _sum: { totalAmount: true },
+      }),
+      prisma.productSale.count({ where: productSaleWhere }),
     ]);
 
     // Get service names for top services
@@ -82,6 +95,8 @@ export class DashboardService {
         totalRevenue: totalRevenue._sum.totalAmount || 0,
         salesCommissions: commissionAmount,
         totalCustomers,
+        productRevenue: productRevenue._sum.totalAmount || 0,
+        productSales: totalProductSales,
       },
       upcomingBookings,
       topServices: topServicesWithNames,

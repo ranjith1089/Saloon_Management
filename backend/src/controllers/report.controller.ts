@@ -23,4 +23,9 @@ export class ReportController {
     const report = await ReportService.staffServiceReport(req.query);
     return ApiResponse.success(res, 'Staff service report', report);
   });
+
+  static productSalesReport = asyncHandler(async (req: Request, res: Response) => {
+    const report = await ReportService.productSalesReport(req.query);
+    return ApiResponse.success(res, 'Product sales report', report);
+  });
 }

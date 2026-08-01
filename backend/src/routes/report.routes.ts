@@ -11,5 +11,6 @@ router.get('/daily-bookings', ReportController.dailyBookings);
 router.get('/overall-bookings', ReportController.overallBookings);
 router.get('/staff-payouts', ReportController.staffPayoutReport);
 router.get('/staff-services', ReportController.staffServiceReport);
+router.get('/product-sales', ReportController.productSalesReport);
 
 export default router;

@@ -150,6 +150,98 @@ export class ReportService {
     };
   }
 
+  static async productSalesReport(query: any) {
+    const startDate = query.startDate
+      ? new Date(query.startDate)
+      : new Date(new Date().setDate(new Date().getDate() - 30));
+    const endDate = query.endDate ? new Date(query.endDate) : new Date();
+
+    const where: any = {
+      createdAt: { gte: startDate, lte: endDate },
+      voidedAt: null,
+    };
+    if (query.branchId) where.branchId = query.branchId;
+
+    const [totals, byProduct, byStaff, expiringCount, lowStockCount] = await Promise.all([
+      prisma.productSale.aggregate({
+        where,
+        _sum: { totalAmount: true, subtotal: true, discountAmount: true },
+        _count: true,
+      }),
+      prisma.productSaleItem.groupBy({
+        by: ['productId'],
+        where: { sale: where },
+        _sum: { quantity: true, subtotal: true },
+        _count: true,
+        orderBy: { _sum: { subtotal: 'desc' } },
+        take: 10,
+      }),
+      prisma.productSale.groupBy({
+        by: ['staffId'],
+        where: { ...where, staffId: { not: null } },
+        _sum: { totalAmount: true },
+        _count: true,
+      }),
+      prisma.product.count({
+        where: {
+          isActive: true,
+          expiryDate: { not: null, lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) },
+          ...(query.branchId && { branchId: query.branchId }),
+        },
+      }),
+      prisma.product.count({
+        where: {
+          isActive: true,
+          ...(query.branchId && { branchId: query.branchId }),
+        },
+      }),
+    ]);
+
+    const productIds = byProduct.map((p) => p.productId);
+    const staffIds = byStaff.map((s) => s.staffId).filter(Boolean) as string[];
+    const [productMeta, staffMeta] = await Promise.all([
+      prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true, brand: true },
+      }),
+      prisma.staff.findMany({
+        where: { id: { in: staffIds } },
+        include: { user: { include: { profile: true } } },
+      }),
+    ]);
+
+    return {
+      period: { startDate, endDate },
+      summary: {
+        totalSales: totals._count,
+        totalRevenue: totals._sum.totalAmount || 0,
+        totalDiscount: totals._sum.discountAmount || 0,
+        expiringSoonCount: expiringCount,
+        activeProductsCount: lowStockCount,
+      },
+      topProducts: byProduct.map((p) => {
+        const m = productMeta.find((x) => x.id === p.productId);
+        return {
+          productId: p.productId,
+          name: m?.name || 'Unknown',
+          brand: m?.brand || null,
+          quantitySold: p._sum.quantity || 0,
+          revenue: p._sum.subtotal || 0,
+          salesCount: p._count,
+        };
+      }),
+      byStaff: byStaff.map((s) => {
+        const st = staffMeta.find((x) => x.id === s.staffId);
+        return {
+          staffId: s.staffId,
+          staffName: st ? `${st.user.profile?.firstName || ''} ${st.user.profile?.lastName || ''}`.trim() : 'Unknown',
+          revenue: s._sum.totalAmount || 0,
+          salesCount: s._count,
+        };
+      }),
+    };
+  }
+
   static async staffServiceReport(query: any) {
     const startDate = query.startDate ? new Date(query.startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
     const endDate = query.endDate ? new Date(query.endDate) : new Date();

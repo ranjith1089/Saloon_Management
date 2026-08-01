@@ -122,6 +122,7 @@ model User {
   bookingsAsCustomer Booking[] @relation("CustomerBookings")
   refreshTokens    RefreshToken[]
   notifications    Notification[]
+  productSales     ProductSale[] @relation("CustomerProductSales")
 
   @@index([email])
   @@index([role])
@@ -222,6 +223,8 @@ model Branch {
   services BranchService[]
   staff    Staff[]
   bookings Booking[]
+  products Product[]
+  productSales ProductSale[]
 
   @@map("branches")
 }
@@ -305,6 +308,7 @@ model Staff {
   bookings   Booking[]
   earnings   StaffEarning[]
   payouts    Payout[]
+  productSales ProductSale[]
 
   @@index([branchId])
   @@map("staff")
@@ -388,6 +392,7 @@ model Booking {
   coupon   Coupon? @relation(fields: [couponId], references: [id])
   review   Review?
   earning  StaffEarning?
+  productSale ProductSale?
 
   @@index([customerId])
   @@index([staffId])
@@ -452,7 +457,8 @@ model Tax {
 model StaffEarning {
   id               String       @id @default(uuid())
   staffId          String
-  bookingId        String       @unique
+  bookingId        String?      @unique
+  productSaleId    String?      @unique
   baseAmount       Decimal      @db.Decimal(10, 2)
   commissionRate   Decimal      @db.Decimal(5, 2)
   commissionAmount Decimal      @db.Decimal(10, 2)
@@ -460,9 +466,10 @@ model StaffEarning {
   payoutId         String?
   createdAt        DateTime     @default(now())
 
-  staff   Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  booking Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  payout  Payout?  @relation(fields: [payoutId], references: [id])
+  staff        Staff        @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  booking      Booking?     @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  productSale  ProductSale? @relation(fields: [productSaleId], references: [id], onDelete: Cascade)
+  payout       Payout?      @relation(fields: [payoutId], references: [id])
 
   @@index([staffId])
   @@index([payoutStatus])
@@ -591,4 +598,100 @@ model PaymentMethod {
   updatedAt    DateTime          @updatedAt
 
   @@map("payment_methods")
+}
+
+// ============================================
+// PRODUCTS & PRODUCT SALES
+// ============================================
+
+model ProductCategory {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  icon      String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products  Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id           String    @id @default(uuid())
+  branchId     String
+  categoryId   String?
+  name         String
+  sku          String?   @unique
+  barcode      String?   @unique
+  brand        String?
+  description  String?
+  image        String?
+  mrp          Decimal   @db.Decimal(10, 2)
+  buyPrice     Decimal   @db.Decimal(10, 2)
+  sellPrice    Decimal   @db.Decimal(10, 2)
+  stock        Int       @default(0)
+  reorderLevel Int       @default(5)
+  expiryDate   DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  branch    Branch            @relation(fields: [branchId], references: [id])
+  category  ProductCategory?  @relation(fields: [categoryId], references: [id])
+  saleItems ProductSaleItem[]
+
+  @@index([branchId])
+  @@index([categoryId])
+  @@index([expiryDate])
+  @@map("products")
+}
+
+model ProductSale {
+  id             String        @id @default(uuid())
+  saleNumber     String        @unique
+  branchId       String
+  customerId     String?
+  staffId        String?
+  bookingId      String?       @unique
+  subtotal       Decimal       @db.Decimal(10, 2)
+  discountAmount Decimal       @default(0) @db.Decimal(10, 2)
+  taxAmount      Decimal       @default(0) @db.Decimal(10, 2)
+  totalAmount    Decimal       @db.Decimal(10, 2)
+  paymentMethod  String?
+  paymentStatus  PaymentStatus @default(PAID)
+  notes          String?
+  voidedAt       DateTime?
+  voidReason     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  branch   Branch            @relation(fields: [branchId], references: [id])
+  customer User?             @relation("CustomerProductSales", fields: [customerId], references: [id])
+  staff    Staff?            @relation(fields: [staffId], references: [id])
+  booking  Booking?          @relation(fields: [bookingId], references: [id])
+  items    ProductSaleItem[]
+  earning  StaffEarning?
+
+  @@index([branchId])
+  @@index([customerId])
+  @@index([staffId])
+  @@index([createdAt])
+  @@map("product_sales")
+}
+
+model ProductSaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  sale    ProductSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id])
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("product_sale_items")
 }
