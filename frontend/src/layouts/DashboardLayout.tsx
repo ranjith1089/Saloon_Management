@@ -31,26 +31,61 @@ import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth.service';
 import toast from 'react-hot-toast';
 
-// Admin / manager / staff menu. CUSTOMER gets a smaller purpose-built menu below.
-const adminMenu = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/bookings', label: 'Bookings', icon: Calendar },
-  { path: '/branches', label: 'Branches', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/services', label: 'Services', icon: Scissors, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/staff', label: 'Staff', icon: Users, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/products', label: 'Products', icon: Package, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/product-sales', label: 'Product Sales', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-  { path: '/customers', label: 'Customers', icon: UserCircle, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-  { path: '/memberships', label: 'Memberships', icon: Crown, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/earnings', label: 'Earnings', icon: DollarSign, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-  { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-  { path: '/coupons', label: 'Coupons', icon: Ticket, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/reviews', label: 'Reviews', icon: Star },
-  { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/inquiries', label: 'Inquiries', icon: Mail, roles: ['ADMIN', 'MANAGER'] },
-  { path: '/notifications', label: 'Notifications', icon: Bell },
-  { path: '/access-control', label: 'Access Control', icon: ShieldCheck, roles: ['ADMIN'] },
-  { path: '/settings', label: 'Settings', icon: Settings },
+// Admin / manager / staff menu — grouped like Frezka (MAIN / COMPANY / SHOP /
+// USERS / FINANCE / SYSTEM) with a section heading between each group.
+// CUSTOMER gets a smaller purpose-built menu below.
+type MenuItem = { path: string; label: string; icon: any; roles?: string[] };
+type MenuGroup = { heading: string; items: MenuItem[] };
+
+const adminMenuGroups: MenuGroup[] = [
+  {
+    heading: 'Main',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/bookings', label: 'Bookings', icon: Calendar },
+    ],
+  },
+  {
+    heading: 'Salon',
+    items: [
+      { path: '/branches', label: 'Branches', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/services', label: 'Services', icon: Scissors, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/memberships', label: 'Memberships', icon: Crown, roles: ['ADMIN', 'MANAGER'] },
+    ],
+  },
+  {
+    heading: 'Shop',
+    items: [
+      { path: '/products', label: 'Products', icon: Package, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/product-sales', label: 'Product Sales', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+    ],
+  },
+  {
+    heading: 'Users',
+    items: [
+      { path: '/staff', label: 'Staff', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/customers', label: 'Customers', icon: UserCircle, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+      { path: '/reviews', label: 'Reviews', icon: Star },
+    ],
+  },
+  {
+    heading: 'Finance',
+    items: [
+      { path: '/earnings', label: 'Staff Earnings', icon: DollarSign, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+      { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+      { path: '/coupons', label: 'Coupons', icon: Ticket, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+    ],
+  },
+  {
+    heading: 'System',
+    items: [
+      { path: '/inquiries', label: 'Users Inquiries', icon: Mail, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/notifications', label: 'Notifications', icon: Bell },
+      { path: '/access-control', label: 'Access Control', icon: ShieldCheck, roles: ['ADMIN'] },
+      { path: '/settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
 // Customer portal — a small friendly menu focused on their own things.
@@ -81,10 +116,18 @@ export default function DashboardLayout() {
     navigate('/login');
   };
 
-  const filteredMenu =
-    user?.role === 'CUSTOMER'
-      ? customerMenu
-      : adminMenu.filter((item) => !item.roles || item.roles.includes(user?.role || ''));
+  // For CUSTOMER we render a flat menu; for admin/manager/staff we render
+  // sectioned groups (matching Frezka's Main / Salon / Shop / Users / Finance
+  // / System layout) with items filtered per role.
+  const isCustomerRole = user?.role === 'CUSTOMER';
+  const visibleGroups: MenuGroup[] = isCustomerRole
+    ? []
+    : adminMenuGroups
+        .map((g) => ({
+          ...g,
+          items: g.items.filter((it) => !it.roles || it.roles.includes(user?.role || '')),
+        }))
+        .filter((g) => g.items.length > 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -111,10 +154,27 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-          {filteredMenu.map((item) => (
-            <SidebarLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
-          ))}
+        <nav className="flex-1 overflow-y-auto py-3 px-3">
+          {isCustomerRole ? (
+            <div className="space-y-1">
+              {customerMenu.map((item) => (
+                <SidebarLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
+              ))}
+            </div>
+          ) : (
+            visibleGroups.map((group) => (
+              <div key={group.heading} className="mb-4 last:mb-0">
+                <h6 className="px-3 pb-1 pt-2 text-[10px] font-semibold tracking-wider text-gray-400 uppercase">
+                  {group.heading}
+                </h6>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <SidebarLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
         </nav>
 
         <div className="p-4 border-t border-gray-100 flex-shrink-0">
