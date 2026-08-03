@@ -18,6 +18,7 @@ import productRoutes, { productSalesRouter } from './product.routes';
 import { plansRouter, membershipsRouter } from './membership.routes';
 import accessControlRoutes from './access-control.routes';
 import inquiryRoutes from './inquiry.routes';
+import uploadRoutes from './upload.routes';
 
 const router = Router();
 
@@ -61,5 +62,6 @@ router.use('/membership-plans', plansRouter);
 router.use('/memberships', membershipsRouter);
 router.use('/access-control', accessControlRoutes);
 router.use('/inquiries', inquiryRoutes);
+router.use('/uploads', uploadRoutes);
 
 export default router;

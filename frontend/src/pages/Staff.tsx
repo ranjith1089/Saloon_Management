@@ -157,11 +157,22 @@ export default function Staff() {
             return (
               <div key={s.id} className={`card ${!s.isVerified ? 'border-amber-300 border-2' : ''}`}>
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-lg font-medium text-primary-700">
-                      {s.user?.profile?.firstName?.[0]}{s.user?.profile?.lastName?.[0]}
-                    </span>
-                  </div>
+                  {s.user?.profile?.avatar ? (
+                    <img
+                      src={s.user.profile.avatar}
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover flex-shrink-0 border border-gray-100"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg font-medium text-primary-700">
+                        {s.user?.profile?.firstName?.[0]}{s.user?.profile?.lastName?.[0]}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
                       <h3 className="font-semibold truncate">

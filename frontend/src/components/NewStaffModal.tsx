@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
+import AvatarUpload from './AvatarUpload';
 
 interface Props {
   open: boolean;
@@ -15,6 +16,7 @@ interface Props {
 export default function NewStaffModal({ open, onClose, staff }: Props) {
   const queryClient = useQueryClient();
   const isEdit = !!staff;
+  const [avatar, setAvatar] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors }, watch, setValue } = useForm({
     defaultValues: {
@@ -39,6 +41,7 @@ export default function NewStaffModal({ open, onClose, staff }: Props) {
   // Prefill from the staff record whenever it changes (edit mode).
   useEffect(() => {
     if (staff) {
+      setAvatar(staff.user?.profile?.avatar || null);
       reset({
         firstName: staff.user?.profile?.firstName || '',
         lastName: staff.user?.profile?.lastName || '',
@@ -57,6 +60,7 @@ export default function NewStaffModal({ open, onClose, staff }: Props) {
         serviceIds: (staff.services || []).map((s: any) => s.serviceId || s.service?.id).filter(Boolean),
       });
     } else if (open) {
+      setAvatar(null);
       reset({
         firstName: '',
         lastName: '',
@@ -99,6 +103,7 @@ export default function NewStaffModal({ open, onClose, staff }: Props) {
     mutationFn: async (data: any) => {
       const payload = {
         ...data,
+        avatar: avatar || null,
         salary: Number(data.salary),
         commissionRate: Number(data.commissionRate),
         monthlyTarget: Number(data.monthlyTarget) || null,
@@ -155,6 +160,8 @@ export default function NewStaffModal({ open, onClose, staff }: Props) {
     >
       <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
         <h3 className="text-sm font-semibold text-gray-700 border-b pb-2">Personal Info</h3>
+
+        <AvatarUpload value={avatar} onChange={setAvatar} folder="staff" />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
