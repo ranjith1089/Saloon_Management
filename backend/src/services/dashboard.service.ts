@@ -1,6 +1,85 @@
 import prisma from '../config/database';
+import { CommissionService } from './commission.service';
+import { MembershipService } from './membership.service';
 
 export class DashboardService {
+  /**
+   * Home tiles for a CUSTOMER — their own upcoming bookings, membership,
+   * loyalty points, lifetime spend.
+   */
+  static async getCustomerHome(userId: string) {
+    const now = new Date();
+    const [upcoming, past, customer, membership] = await Promise.all([
+      prisma.booking.findMany({
+        where: {
+          customerId: userId,
+          bookingDate: { gte: new Date(now.getFullYear(), now.getMonth(), now.getDate()) },
+          status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
+        },
+        take: 5,
+        orderBy: [{ bookingDate: 'asc' }, { startTime: 'asc' }],
+        include: { service: true, staff: { include: { user: { include: { profile: true } } } }, branch: true },
+      }),
+      prisma.booking.count({
+        where: { customerId: userId, status: 'COMPLETED' },
+      }),
+      prisma.customer.findUnique({ where: { userId } }),
+      MembershipService.getActiveForCustomer(userId),
+    ]);
+    return {
+      upcoming,
+      metrics: {
+        upcomingCount: upcoming.length,
+        completedCount: past,
+        loyaltyPoints: customer?.loyaltyPoints ?? 0,
+        totalSpent: Number(customer?.totalSpent ?? 0),
+      },
+      membership,
+    };
+  }
+
+  /**
+   * Home tiles for a STAFF member — today's schedule + this month's
+   * commission summary.
+   */
+  static async getStaffHome(staffId: string) {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+
+    const [today, upcomingWeek, monthly] = await Promise.all([
+      prisma.booking.findMany({
+        where: {
+          staffId,
+          bookingDate: { gte: startOfDay, lt: endOfDay },
+          status: { notIn: ['CANCELLED'] },
+        },
+        orderBy: { startTime: 'asc' },
+        include: { service: true, customer: { include: { profile: true } } },
+      }),
+      prisma.booking.count({
+        where: {
+          staffId,
+          bookingDate: { gte: startOfDay, lt: new Date(startOfDay.getTime() + 7 * 24 * 3600 * 1000) },
+          status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS'] },
+        },
+      }),
+      CommissionService.monthlySummaryForStaff(staffId, now.getUTCFullYear(), now.getUTCMonth() + 1),
+    ]);
+
+    return {
+      today,
+      metrics: {
+        todayCount: today.length,
+        upcomingWeekCount: upcomingWeek,
+        monthlyAchieved: monthly.achieved,
+        monthlyTarget: monthly.monthlyTarget,
+        payableCommission: monthly.payableCommission,
+        targetMet: monthly.targetMet,
+      },
+    };
+  }
   static async getStats(query: any) {
     const startDate = query.startDate ? new Date(query.startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
     const endDate = query.endDate ? new Date(query.endDate) : new Date();

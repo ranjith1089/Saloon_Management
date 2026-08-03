@@ -279,15 +279,12 @@ export default function Bookings() {
               {selected.notes && <Row label="Notes">{selected.notes}</Row>}
             </div>
             <div className="border-t border-gray-100 p-4 flex flex-wrap gap-2">
-              {selected.paymentStatus !== 'PAID' && selected.status !== 'CANCELLED' && (
-                <button
-                  onClick={() => setPayingFor(selected)}
-                  className="btn-primary text-xs"
-                >
+              {!isCustomer && selected.paymentStatus !== 'PAID' && selected.status !== 'CANCELLED' && (
+                <button onClick={() => setPayingFor(selected)} className="btn-primary text-xs">
                   <CreditCard className="w-3.5 h-3.5 mr-1" /> Collect Payment
                 </button>
               )}
-              {nextStatuses[selected.status]?.map((s) => (
+              {!isCustomer && nextStatuses[selected.status]?.map((s) => (
                 <button
                   key={s}
                   onClick={() => {
@@ -302,6 +299,22 @@ export default function Bookings() {
                   Mark as {s.replace('_', ' ')}
                 </button>
               ))}
+              {isCustomer && canCustomerCancel(selected) && (
+                <button
+                  onClick={() => {
+                    const reason = prompt('Reason for cancelling? (optional)') || 'Cancelled by customer';
+                    statusMutation.mutate({ id: selected.id, status: 'CANCELLED', reason });
+                  }}
+                  className="btn-danger text-xs"
+                >
+                  Cancel this booking
+                </button>
+              )}
+              {isCustomer && !canCustomerCancel(selected) && selected.status !== 'CANCELLED' && selected.status !== 'COMPLETED' && (
+                <p className="text-xs text-gray-500 italic">
+                  Bookings can only be cancelled at least 2 hours before start time.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -319,6 +332,14 @@ export default function Bookings() {
       />
     </div>
   );
+}
+
+function canCustomerCancel(b: any) {
+  if (!b || b.status === 'CANCELLED' || b.status === 'COMPLETED' || b.status === 'NO_SHOW') return false;
+  const [h, m] = String(b.startTime).split(':').map(Number);
+  const start = new Date(b.bookingDate);
+  start.setHours(h, m, 0, 0);
+  return (start.getTime() - Date.now()) / (1000 * 60 * 60) >= 2;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

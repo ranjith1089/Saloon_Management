@@ -1,30 +1,191 @@
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, DollarSign, Users, TrendingUp, ShoppingBag } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  Calendar, DollarSign, Users, TrendingUp, ShoppingBag, Award, Crown, Target, Clock, User,
+} from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import api from '@/services/api';
-
-interface Stats {
-  metrics: {
-    totalAppointments: number;
-    totalRevenue: number;
-    salesCommissions: number;
-    totalCustomers: number;
-    productRevenue?: number;
-    productSales?: number;
-  };
-  upcomingBookings: any[];
-  topServices: any[];
-}
+import { useAuthStore } from '@/store/authStore';
 
 export default function Dashboard() {
+  const { user } = useAuthStore();
+  const role = user?.role;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboard-stats'],
-    queryFn: async () => {
-      const res = await api.get('/dashboard/stats');
-      return res.data.data as Stats;
-    },
+    queryKey: ['dashboard-home', role],
+    queryFn: async () => (await api.get('/dashboard/home')).data.data,
   });
 
+  if (isLoading) return <div className="text-center py-16 text-gray-500">Loading…</div>;
+
+  if (role === 'CUSTOMER') return <CustomerHome data={data} user={user} />;
+  if (role === 'STAFF') return <StaffHome data={data} user={user} />;
+  return <AdminHome data={data} />;
+}
+
+// ============ CUSTOMER ============
+function CustomerHome({ data, user }: { data: any; user: any }) {
+  const m = data?.metrics || {};
+  const upcoming = data?.upcoming || [];
+  const membership = data?.membership;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Hi {user?.profile?.firstName || 'there'} 👋</h1>
+        <p className="text-sm text-gray-500 mt-1">Your bookings, membership and rewards at a glance.</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Tile label="Upcoming" value={m.upcomingCount ?? 0} icon={<Calendar className="w-5 h-5" />} tone="blue" />
+        <Tile label="Completed visits" value={m.completedCount ?? 0} icon={<Clock className="w-5 h-5" />} tone="green" />
+        <Tile label="Loyalty points" value={m.loyaltyPoints ?? 0} icon={<Award className="w-5 h-5" />} tone="yellow" />
+        <Tile label="Lifetime spend" value={`₹${Number(m.totalSpent ?? 0).toLocaleString()}`} icon={<DollarSign className="w-5 h-5" />} tone="pink" />
+      </div>
+
+      {membership && (
+        <div
+          className="card border-2"
+          style={{ borderColor: membership.plan?.color, backgroundColor: `${membership.plan?.color}08` }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: `${membership.plan?.color}20`, color: membership.plan?.color }}
+            >
+              <Crown className="w-6 h-6" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold">{membership.plan?.name} Member</p>
+              <p className="text-xs text-gray-500">
+                Valid until {new Date(membership.endDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="card p-0 overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h2 className="font-semibold">Upcoming Appointments</h2>
+          <Link to="/bookings" className="text-xs text-primary-600 hover:underline">View all →</Link>
+        </div>
+        {upcoming.length === 0 ? (
+          <div className="text-center py-8 text-sm text-gray-500">
+            <Calendar className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+            <p>No upcoming appointments.</p>
+            <Link to="/bookings" className="btn-primary mt-3 inline-block">Book Now</Link>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {upcoming.map((b: any) => (
+              <div key={b.id} className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center flex-shrink-0">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{b.service?.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(b.bookingDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} · {b.startTime} · {b.branch?.name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    with {b.staff?.user?.profile?.firstName} {b.staff?.user?.profile?.lastName}
+                  </p>
+                </div>
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                  {b.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============ STAFF ============
+function StaffHome({ data, user }: { data: any; user: any }) {
+  const m = data?.metrics || {};
+  const today = data?.today || [];
+  const targetPct = m.monthlyTarget > 0 ? Math.min(100, Math.round((m.monthlyAchieved / m.monthlyTarget) * 100)) : 0;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Good day, {user?.profile?.firstName || 'there'}</h1>
+        <p className="text-sm text-gray-500 mt-1">Your schedule and earnings this month.</p>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Tile label="Today" value={m.todayCount ?? 0} icon={<Calendar className="w-5 h-5" />} tone="blue" sub="bookings" />
+        <Tile label="Next 7 days" value={m.upcomingWeekCount ?? 0} icon={<Clock className="w-5 h-5" />} tone="green" sub="upcoming" />
+        <Tile label="Month achieved" value={`₹${Number(m.monthlyAchieved ?? 0).toLocaleString()}`} icon={<TrendingUp className="w-5 h-5" />} tone="purple" />
+        <Tile
+          label={m.monthlyTarget > 0 ? 'Payable commission' : 'Commission'}
+          value={`₹${Number(m.payableCommission ?? 0).toLocaleString()}`}
+          icon={<DollarSign className="w-5 h-5" />}
+          tone={m.targetMet ? 'green' : 'yellow'}
+        />
+      </div>
+
+      {m.monthlyTarget > 0 && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium">Monthly target progress</span>
+            <span className="ml-auto text-sm text-gray-600">
+              ₹{Number(m.monthlyAchieved).toLocaleString()} / ₹{Number(m.monthlyTarget).toLocaleString()}
+            </span>
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div className={`h-full ${m.targetMet ? 'bg-green-500' : 'bg-primary-500'}`} style={{ width: `${targetPct}%` }} />
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            {m.targetMet
+              ? `Target met — commission unlocked (${targetPct}%)`
+              : `${targetPct}% — need ₹${Number(m.monthlyTarget - m.monthlyAchieved).toLocaleString()} more to earn commission this month`}
+          </p>
+        </div>
+      )}
+
+      <div className="card p-0 overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <h2 className="font-semibold">Today's Schedule</h2>
+          <Link to="/bookings" className="text-xs text-primary-600 hover:underline">All bookings →</Link>
+        </div>
+        {today.length === 0 ? (
+          <div className="text-center py-8 text-sm text-gray-500">
+            <Calendar className="w-10 h-10 mx-auto text-gray-300 mb-2" />
+            No bookings today. Enjoy the calm.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {today.map((b: any) => (
+              <div key={b.id} className="p-4 flex items-center gap-3">
+                <div className="w-14 text-center flex-shrink-0">
+                  <p className="font-mono text-sm font-semibold">{b.startTime}</p>
+                  <p className="text-[10px] text-gray-500">{b.endTime}</p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{b.service?.name}</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    {b.customer?.profile?.firstName} {b.customer?.profile?.lastName}
+                  </p>
+                </div>
+                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
+                  {b.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============ ADMIN / MANAGER (unchanged) ============
+function AdminHome({ data }: { data: any }) {
   const { data: revenueData } = useQuery({
     queryKey: ['revenue-chart'],
     queryFn: async () => {
@@ -33,18 +194,21 @@ export default function Dashboard() {
     },
   });
 
+  const metrics = data?.metrics || {};
+  const upcomingBookings = data?.upcomingBookings || [];
+  const topServices = data?.topServices || [];
+
   const statCards = [
-    { label: 'Appointments', value: data?.metrics.totalAppointments || 0, icon: Calendar, color: 'blue' },
-    { label: 'Service Revenue', value: `₹${Number(data?.metrics.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'green' },
+    { label: 'Appointments', value: metrics.totalAppointments || 0, icon: Calendar, color: 'blue' },
+    { label: 'Service Revenue', value: `₹${Number(metrics.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'green' },
     {
       label: 'Product Revenue',
-      value: `₹${Number(data?.metrics.productRevenue || 0).toLocaleString()}`,
-      icon: ShoppingBag,
-      color: 'pink',
-      sub: `${data?.metrics.productSales || 0} sales`,
+      value: `₹${Number(metrics.productRevenue || 0).toLocaleString()}`,
+      icon: ShoppingBag, color: 'pink',
+      sub: `${metrics.productSales || 0} sales`,
     },
-    { label: 'Sales Commissions', value: `₹${Number(data?.metrics.salesCommissions || 0).toLocaleString()}`, icon: TrendingUp, color: 'purple' },
-    { label: 'Customers', value: data?.metrics.totalCustomers || 0, icon: Users, color: 'orange' },
+    { label: 'Sales Commissions', value: `₹${Number(metrics.salesCommissions || 0).toLocaleString()}`, icon: TrendingUp, color: 'purple' },
+    { label: 'Customers', value: metrics.totalCustomers || 0, icon: Users, color: 'orange' },
   ];
 
   const colorClasses: Record<string, string> = {
@@ -62,16 +226,13 @@ export default function Dashboard() {
         <p className="text-sm text-gray-500 mt-1">Overview of your salon operations</p>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {statCards.map((stat) => (
           <div key={stat.label} className="card">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1 tabular-nums break-all">
-                  {isLoading ? '...' : stat.value}
-                </p>
+                <p className="text-2xl font-bold mt-1 tabular-nums break-all">{stat.value}</p>
                 {(stat as any).sub && <p className="text-xs text-gray-400 mt-0.5">{(stat as any).sub}</p>}
               </div>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
@@ -82,7 +243,6 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Revenue Chart */}
       <div className="card">
         <h2 className="text-lg font-semibold mb-4">Revenue Trend (Last 30 Days)</h2>
         {revenueData && revenueData.length > 0 ? (
@@ -95,7 +255,7 @@ export default function Dashboard() {
                 contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
                 formatter={(v: any) => [`₹${Number(v).toLocaleString()}`, 'Revenue']}
               />
-              <Line type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="revenue" stroke="#dc2626" strokeWidth={2} dot={{ r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -103,15 +263,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Upcoming Appointments & Top Services */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="card">
           <h2 className="text-lg font-semibold mb-4">Upcoming Appointments</h2>
-          {data?.upcomingBookings.length === 0 ? (
+          {upcomingBookings.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-8">No upcoming appointments</p>
           ) : (
             <div className="space-y-3">
-              {data?.upcomingBookings.map((booking: any) => (
+              {upcomingBookings.map((booking: any) => (
                 <div key={booking.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                   <div className="w-10 h-10 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center text-sm font-medium">
                     {booking.customer?.profile?.firstName?.[0]}
@@ -135,19 +294,44 @@ export default function Dashboard() {
 
         <div className="card">
           <h2 className="text-lg font-semibold mb-4">Top Services</h2>
-          {!data?.topServices || data.topServices.length === 0 ? (
+          {topServices.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-8">No data available</p>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={data.topServices}>
+              <BarChart data={topServices}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-15} textAnchor="end" height={60} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }} />
-                <Bar dataKey="totalCount" fill="#6366f1" radius={[4, 4, 0, 0]} name="Bookings" />
+                <Bar dataKey="totalCount" fill="#dc2626" radius={[4, 4, 0, 0]} name="Bookings" />
               </BarChart>
             </ResponsiveContainer>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Tile({ label, value, icon, tone, sub }: { label: string; value: any; icon: React.ReactNode; tone: string; sub?: string }) {
+  const tones: Record<string, string> = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600',
+    pink: 'bg-pink-100 text-pink-600',
+    yellow: 'bg-yellow-100 text-yellow-600',
+  };
+  return (
+    <div className="card">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm text-gray-500">{label}</p>
+          <p className="text-2xl font-bold mt-1 tabular-nums break-all">{value}</p>
+          {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        </div>
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${tones[tone] || tones.blue}`}>
+          {icon}
         </div>
       </div>
     </div>

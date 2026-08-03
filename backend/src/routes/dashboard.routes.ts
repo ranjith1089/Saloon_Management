@@ -8,5 +8,7 @@ router.use(authenticate);
 
 router.get('/stats', DashboardController.getStats);
 router.get('/revenue-chart', DashboardController.getRevenueChart);
+// Role-aware home — returns a different payload per role.
+router.get('/home', DashboardController.getHome);
 
 export default router;
