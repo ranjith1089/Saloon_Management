@@ -3,6 +3,12 @@ import { z } from 'zod';
 const money = z.coerce.number().nonnegative();
 const positiveInt = z.coerce.number().int().nonnegative();
 
+const branchStockEntry = z.object({
+  branchId: z.string().uuid(),
+  stock: positiveInt.optional(),
+  reorderLevel: positiveInt.optional(),
+});
+
 export const createCategorySchema = z.object({
   body: z.object({
     name: z.string().min(1).max(80),
@@ -21,7 +27,6 @@ export const updateCategorySchema = z.object({
 
 export const createProductSchema = z.object({
   body: z.object({
-    branchId: z.string().uuid(),
     categoryId: z.string().uuid().optional().nullable(),
     name: z.string().min(1).max(200),
     sku: z.string().max(80).optional().nullable(),
@@ -33,8 +38,8 @@ export const createProductSchema = z.object({
     buyPrice: money,
     sellPrice: money,
     memberPrice: money.nullable().optional(),
-    stock: positiveInt.default(0),
-    reorderLevel: positiveInt.default(5),
+    // Per-branch stock rows. Empty array = catalog-only, not stocked anywhere yet.
+    branchStocks: z.array(branchStockEntry).optional(),
     expiryDate: z.string().optional().nullable(),
     isActive: z.boolean().optional(),
   }),

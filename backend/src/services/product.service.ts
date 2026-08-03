@@ -34,15 +34,52 @@ export class ProductCategoryService {
 }
 
 // ============ PRODUCT ============
+const PRODUCT_INCLUDE = {
+  category: true,
+  branchStocks: { include: { branch: { select: { id: true, name: true } } } },
+} as const;
+
+type BranchStockInput = { branchId: string; stock?: number; reorderLevel?: number };
+
+/**
+ * Enrich a product row with two helper fields for the client:
+ *  - totalStock: sum of stock across all branches
+ *  - stock (only when the query narrowed to a single branch): the count at
+ *    that branch, so the existing UI can read `product.stock` unchanged.
+ */
+function enrich(product: any, branchScopeId?: string) {
+  if (!product) return product;
+  const stocks = product.branchStocks || [];
+  const total = stocks.reduce((s: number, x: any) => s + (x.stock || 0), 0);
+  const scoped = branchScopeId ? stocks.find((x: any) => x.branchId === branchScopeId) : null;
+  return {
+    ...product,
+    totalStock: total,
+    stock: scoped ? scoped.stock : total,
+    reorderLevel: scoped ? scoped.reorderLevel : undefined,
+    branchId: scoped ? scoped.branchId : undefined,
+    branch: scoped ? { id: scoped.branchId, name: scoped.branch?.name } : undefined,
+  };
+}
+
 export class ProductService {
   static async create(data: any) {
-    return prisma.product.create({
+    const { branchStocks = [], expiryDate, ...rest } = data;
+    const created = await prisma.product.create({
       data: {
-        ...data,
-        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+        ...rest,
+        expiryDate: expiryDate ? new Date(expiryDate) : null,
+        branchStocks: branchStocks.length
+          ? { create: (branchStocks as BranchStockInput[]).map((b) => ({
+              branchId: b.branchId,
+              stock: Number(b.stock ?? 0),
+              reorderLevel: Number(b.reorderLevel ?? 5),
+            })) }
+          : undefined,
       },
-      include: { branch: true, category: true },
+      include: PRODUCT_INCLUDE,
     });
+    return enrich(created);
   }
 
   static async findAll(query: any) {
@@ -51,7 +88,6 @@ export class ProductService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (query.branchId) where.branchId = query.branchId;
     if (query.categoryId) where.categoryId = query.categoryId;
     if (query.isActive !== undefined) where.isActive = query.isActive === 'true';
     if (query.search) {
@@ -62,9 +98,10 @@ export class ProductService {
         { barcode: { contains: query.search, mode: 'insensitive' } },
       ];
     }
-    // NOTE: low-stock filter (stock <= reorderLevel) is exposed via the dedicated
-    // /products/alerts/low-stock endpoint since Prisma's `fields` shorthand needs
-    // a preview flag we haven't enabled.
+    // Branch filter: only products stocked at that branch.
+    if (query.branchId) {
+      where.branchStocks = { some: { branchId: query.branchId } };
+    }
     if (query.expiringInDays) {
       const days = parseInt(query.expiringInDays, 10);
       const until = new Date();
@@ -78,52 +115,107 @@ export class ProductService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: { branch: true, category: true },
+        include: PRODUCT_INCLUDE,
       }),
       prisma.product.count({ where }),
     ]);
-    return { products, total, page, limit };
+    return {
+      products: products.map((p) => enrich(p, query.branchId)),
+      total,
+      page,
+      limit,
+    };
   }
 
   static async findById(id: string) {
-    const p = await prisma.product.findUnique({
-      where: { id },
-      include: { branch: true, category: true },
-    });
+    const p = await prisma.product.findUnique({ where: { id }, include: PRODUCT_INCLUDE });
     if (!p) throw new NotFoundError('Product not found');
-    return p;
+    return enrich(p);
   }
 
   static async update(id: string, data: any) {
     await this.findById(id);
-    return prisma.product.update({
-      where: { id },
-      data: {
-        ...data,
-        ...(data.expiryDate !== undefined && {
-          expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
-        }),
-      },
-      include: { branch: true, category: true },
+    const { branchStocks, expiryDate, ...rest } = data;
+
+    return prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: {
+          ...rest,
+          ...(expiryDate !== undefined && {
+            expiryDate: expiryDate ? new Date(expiryDate) : null,
+          }),
+        },
+      });
+
+      // branchStocks is authoritative when provided — matches the "stocked at
+      // exactly these branches" mental model. Omit the field entirely to leave
+      // branchStocks untouched.
+      if (Array.isArray(branchStocks)) {
+        const desiredIds = new Set((branchStocks as BranchStockInput[]).map((b) => b.branchId));
+        const existing = await tx.productBranchStock.findMany({ where: { productId: id } });
+
+        // Remove rows for branches no longer selected.
+        for (const row of existing) {
+          if (!desiredIds.has(row.branchId)) {
+            await tx.productBranchStock.delete({ where: { id: row.id } });
+          }
+        }
+        // Upsert desired rows.
+        for (const b of branchStocks as BranchStockInput[]) {
+          await tx.productBranchStock.upsert({
+            where: { productId_branchId: { productId: id, branchId: b.branchId } },
+            update: {
+              stock: Number(b.stock ?? 0),
+              reorderLevel: Number(b.reorderLevel ?? 5),
+            },
+            create: {
+              productId: id,
+              branchId: b.branchId,
+              stock: Number(b.stock ?? 0),
+              reorderLevel: Number(b.reorderLevel ?? 5),
+            },
+          });
+        }
+      }
+
+      const fresh = await tx.product.findUnique({ where: { id }, include: PRODUCT_INCLUDE });
+      return enrich(fresh);
     });
   }
 
   static async delete(id: string) {
     await this.findById(id);
     // Soft-delete so historical sale line items remain valid.
-    return prisma.product.update({ where: { id }, data: { isActive: false } });
+    const updated = await prisma.product.update({
+      where: { id },
+      data: { isActive: false },
+      include: PRODUCT_INCLUDE,
+    });
+    return enrich(updated);
   }
 
   static async getLowStock(query: any) {
-    const where: any = { isActive: true };
+    const where: any = {
+      product: { isActive: true },
+    };
     if (query.branchId) where.branchId = query.branchId;
-    // Fetch active products where stock <= reorderLevel.
-    const all = await prisma.product.findMany({
+
+    const rows = await prisma.productBranchStock.findMany({
       where,
-      include: { branch: true, category: true },
+      include: {
+        branch: { select: { id: true, name: true } },
+        product: { include: { category: true } },
+      },
       orderBy: { stock: 'asc' },
     });
-    return all.filter((p) => p.stock <= p.reorderLevel);
+    return rows.filter((r) => r.stock <= r.reorderLevel).map((r) => ({
+      ...r.product,
+      branch: r.branch,
+      branchId: r.branchId,
+      stock: r.stock,
+      reorderLevel: r.reorderLevel,
+    }));
   }
 
   static async getExpiring(query: any) {
@@ -134,12 +226,15 @@ export class ProductService {
       isActive: true,
       expiryDate: { not: null, lte: until },
     };
-    if (query.branchId) where.branchId = query.branchId;
-    return prisma.product.findMany({
+    // Restricting to a branch simply requires the product be stocked there.
+    if (query.branchId) where.branchStocks = { some: { branchId: query.branchId } };
+
+    const rows = await prisma.product.findMany({
       where,
-      include: { branch: true, category: true },
+      include: PRODUCT_INCLUDE,
       orderBy: { expiryDate: 'asc' },
     });
+    return rows.map((p) => enrich(p, query.branchId));
   }
 }
 
@@ -148,23 +243,25 @@ export class ProductSaleService {
   static async create(data: any) {
     const saleNumber = `PS${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
-    // Lookup active membership once outside the transaction so we can pick the
-    // right per-item unit price. Nothing here mutates state.
     const activeMembership = data.customerId
       ? await MembershipService.getActiveForCustomer(data.customerId)
       : null;
     const applyMemberPrice = !!activeMembership;
 
-    // Serializable transaction: validate + decrement stock + create sale + create earning
-    // atomically so two concurrent sales can't oversell a low-stock product.
     return prisma.$transaction(
       async (tx) => {
-        // Load all products in one shot and lock the rows.
         const productIds = data.items.map((i: any) => i.productId);
-        const products = await tx.product.findMany({ where: { id: { in: productIds } } });
-        const byId = new Map(products.map((p) => [p.id, p]));
+        // Product row for name/price and the stock row at the sale's branch.
+        const [products, stocks] = await Promise.all([
+          tx.product.findMany({ where: { id: { in: productIds } } }),
+          tx.productBranchStock.findMany({
+            where: { productId: { in: productIds }, branchId: data.branchId },
+          }),
+        ]);
+        const productById = new Map(products.map((p) => [p.id, p]));
+        const stockKey = (pid: string) => `${pid}:${data.branchId}`;
+        const stockByKey = new Map(stocks.map((s) => [stockKey(s.productId), s]));
 
-        // Validate each item, compute subtotals.
         let subtotal = 0;
         const decrementedItems: Array<{
           productId: string;
@@ -174,14 +271,13 @@ export class ProductSaleService {
         }> = [];
 
         for (const item of data.items) {
-          const p = byId.get(item.productId);
+          const p = productById.get(item.productId);
           if (!p) throw new NotFoundError(`Product ${item.productId} not found`);
           if (!p.isActive) throw new BadRequestError(`Product "${p.name}" is inactive`);
-          if (p.branchId !== data.branchId) {
-            throw new BadRequestError(`Product "${p.name}" does not belong to the selected branch`);
-          }
-          if (p.stock < item.quantity) {
-            throw new ConflictError(`Insufficient stock for "${p.name}" (available: ${p.stock}, requested: ${item.quantity})`);
+          const s = stockByKey.get(stockKey(item.productId));
+          if (!s) throw new BadRequestError(`Product "${p.name}" is not stocked at the selected branch`);
+          if (s.stock < item.quantity) {
+            throw new ConflictError(`Insufficient stock for "${p.name}" (available: ${s.stock}, requested: ${item.quantity})`);
           }
           const memberEligible = applyMemberPrice && p.memberPrice !== null && p.memberPrice !== undefined;
           const defaultUnitPrice = memberEligible ? Number(p.memberPrice) : Number(p.sellPrice);
@@ -197,22 +293,19 @@ export class ProductSaleService {
         }
 
         const discountAmount = Number(data.discountAmount || 0);
-        // Tax is computed on (subtotal - discount) using an optional taxRate
-        // (e.g. 18 for 18% GST). Server never trusts a client-supplied taxAmount.
         const taxRate = Number(data.taxRate || 0);
         const taxableBase = Math.max(0, subtotal - discountAmount);
         const taxAmount = taxRate > 0 ? Math.round((taxableBase * taxRate) / 100 * 100) / 100 : 0;
         const totalAmount = Math.max(0, taxableBase + taxAmount);
 
-        // Decrement stock for each item.
+        // Decrement stock at the branch's join row.
         for (const item of decrementedItems) {
-          await tx.product.update({
-            where: { id: item.productId },
+          await tx.productBranchStock.update({
+            where: { productId_branchId: { productId: item.productId, branchId: data.branchId } },
             data: { stock: { decrement: item.quantity } },
           });
         }
 
-        // Create the sale + items.
         const sale = await tx.productSale.create({
           data: {
             saleNumber,
@@ -236,7 +329,6 @@ export class ProductSaleService {
           },
         });
 
-        // Staff commission — same commissionRate as bookings.
         if (data.staffId) {
           const staff = await tx.staff.findUnique({ where: { id: data.staffId } });
           if (staff) {
@@ -335,15 +427,20 @@ export class ProductSaleService {
       if (!sale) throw new NotFoundError('Sale not found');
       if (sale.voidedAt) throw new BadRequestError('Sale already voided');
 
-      // Restore stock.
+      // Restore stock at the branch this sale happened at.
       for (const item of sale.items) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: { stock: { increment: item.quantity } },
+        await tx.productBranchStock.upsert({
+          where: { productId_branchId: { productId: item.productId, branchId: sale.branchId } },
+          update: { stock: { increment: item.quantity } },
+          create: {
+            productId: item.productId,
+            branchId: sale.branchId,
+            stock: item.quantity,
+            reorderLevel: 5,
+          },
         });
       }
 
-      // Void staff earning if present (and not yet paid out).
       if (sale.earning) {
         if (sale.earning.payoutStatus === 'PAID') {
           throw new BadRequestError(

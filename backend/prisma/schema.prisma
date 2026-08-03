@@ -237,7 +237,7 @@ model Branch {
   services BranchService[]
   staff    Staff[]
   bookings Booking[]
-  products Product[]
+  productStocks ProductBranchStock[]
   productSales ProductSale[]
 
   @@map("branches")
@@ -638,7 +638,6 @@ model ProductCategory {
 
 model Product {
   id           String    @id @default(uuid())
-  branchId     String
   categoryId   String?
   name         String
   sku          String?   @unique
@@ -650,21 +649,37 @@ model Product {
   buyPrice     Decimal   @db.Decimal(10, 2)
   sellPrice    Decimal   @db.Decimal(10, 2)
   memberPrice  Decimal?  @db.Decimal(10, 2)   // Member price. Null = same as sellPrice.
-  stock        Int       @default(0)
-  reorderLevel Int       @default(5)
   expiryDate   DateTime?
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  branch    Branch            @relation(fields: [branchId], references: [id])
-  category  ProductCategory?  @relation(fields: [categoryId], references: [id])
-  saleItems ProductSaleItem[]
+  category      ProductCategory?     @relation(fields: [categoryId], references: [id])
+  branchStocks  ProductBranchStock[]
+  saleItems     ProductSaleItem[]
 
-  @@index([branchId])
   @@index([categoryId])
   @@index([expiryDate])
   @@map("products")
+}
+
+// Per-branch stock for a shared-catalog product.
+// A product may be carried at any subset of branches; missing row = not stocked.
+model ProductBranchStock {
+  id           String   @id @default(uuid())
+  productId    String
+  branchId     String
+  stock        Int      @default(0)
+  reorderLevel Int      @default(5)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, branchId])
+  @@index([branchId])
+  @@map("product_branch_stocks")
 }
 
 model ProductSale {
