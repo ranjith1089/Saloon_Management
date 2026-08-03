@@ -10,7 +10,6 @@ import { useAuthStore } from '@/store/authStore';
 import NewBookingModal from '@/components/NewBookingModal';
 import BookingCalendar from '@/components/BookingCalendar';
 import BookingStaffGrid from '@/components/BookingStaffGrid';
-import CollectPaymentModal from '@/components/CollectPaymentModal';
 
 type Mode = 'table' | 'calendar' | 'grid';
 type StatusFilter = 'ALL' | 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
@@ -42,7 +41,6 @@ export default function Bookings() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('table');
   const [selected, setSelected] = useState<any | null>(null);
-  const [payingFor, setPayingFor] = useState<any | null>(null);
   const [prefill, setPrefill] = useState<{ staffId?: string; startTime?: string; date?: string; branchId?: string } | null>(null);
 
   // Filters (table view only)
@@ -307,17 +305,10 @@ export default function Bookings() {
                             </span>
                           ) : booking.status === 'CANCELLED' ? (
                             <span className="text-xs text-gray-400">—</span>
-                          ) : isCustomer ? (
-                            <span className="text-[11px] px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">
-                              UNPAID
-                            </span>
                           ) : (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setPayingFor(booking); }}
-                              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 font-medium"
-                            >
-                              <CreditCard className="w-3 h-3" /> Collect
-                            </button>
+                            <span className="text-[11px] px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                              PENDING
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-3 relative" onClick={(e) => e.stopPropagation()}>
@@ -471,11 +462,6 @@ export default function Bookings() {
 
             {/* Actions */}
             <div className="border-t border-gray-100 p-4 flex flex-wrap gap-2">
-              {!isCustomer && selected.paymentStatus !== 'PAID' && selected.status !== 'CANCELLED' && (
-                <button onClick={() => setPayingFor(selected)} className="btn-primary text-xs">
-                  <CreditCard className="w-3.5 h-3.5 mr-1" /> Collect Payment
-                </button>
-              )}
               {!isCustomer && NEXT_STATUS[selected.status]?.map((s) => (
                 <button
                   key={s}
@@ -516,11 +502,6 @@ export default function Bookings() {
         open={modalOpen}
         onClose={() => { setModalOpen(false); setPrefill(null); }}
         prefill={prefill || undefined}
-      />
-      <CollectPaymentModal
-        open={!!payingFor}
-        onClose={() => setPayingFor(null)}
-        booking={payingFor}
       />
     </div>
   );
