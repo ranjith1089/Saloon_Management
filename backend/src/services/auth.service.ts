@@ -4,6 +4,7 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '.
 import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/ApiError';
 import { RegisterInput, LoginInput, UpdateProfileInput } from '../validators/auth.validator';
 import { UserRole } from '@prisma/client';
+import { ReferralService } from './referral.service';
 
 export class AuthService {
   static async register(data: RegisterInput) {
@@ -41,6 +42,16 @@ export class AuthService {
     });
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+    // Track referral (if signup carried a ?ref=CODE). Best-effort — a bad
+    // code shouldn't block registration.
+    if ((data as any).referralCode && role === 'CUSTOMER') {
+      try {
+        await ReferralService.trackFromCode((data as any).referralCode, user.id);
+      } catch (err) {
+        console.error('Referral tracking failed:', err);
+      }
+    }
 
     return {
       user: this.sanitizeUser(user),

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
-import { Scissors, Loader2 } from 'lucide-react';
+import { Scissors, Loader2, Gift } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/authStore';
 
@@ -22,6 +22,8 @@ export default function Register() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [loading, setLoading] = useState(false);
+  const [params] = useSearchParams();
+  const referralCode = params.get('ref')?.trim().toUpperCase() || '';
 
   const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -30,9 +32,11 @@ export default function Register() {
   const onSubmit = async (data: RegisterForm) => {
     setLoading(true);
     try {
-      const res = await authService.register(data);
+      const res = await authService.register({ ...(data as any), referralCode: referralCode || undefined });
       setAuth(res.data.user, res.data.accessToken, res.data.refreshToken);
-      toast.success('Registration successful!');
+      toast.success(referralCode
+        ? `Welcome! Your friend's referral has been recorded — you both get 100 points after your first visit.`
+        : 'Registration successful!');
       navigate('/dashboard');
     } catch {
       // handled by interceptor
@@ -51,6 +55,18 @@ export default function Register() {
             </div>
             <h1 className="text-2xl font-bold">Create Account</h1>
           </div>
+
+          {referralCode && (
+            <div className="mb-4 p-3 rounded-lg bg-primary-50 border border-primary-200 flex items-center gap-2 text-sm text-primary-800">
+              <Gift className="w-4 h-4 flex-shrink-0" />
+              <div>
+                <p className="font-medium">Referred by a friend!</p>
+                <p className="text-xs text-primary-700">
+                  Code <span className="font-mono font-bold">{referralCode}</span> — you'll both earn 100 loyalty points after your first visit.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">

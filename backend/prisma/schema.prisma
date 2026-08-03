@@ -114,6 +114,12 @@ enum InquiryStatus {
   SPAM
 }
 
+enum ReferralStatus {
+  PENDING
+  COMPLETED
+  EXPIRED
+}
+
 // ============================================
 // USER & AUTH
 // ============================================
@@ -125,6 +131,7 @@ model User {
   role          UserRole   @default(CUSTOMER)
   status        UserStatus @default(ACTIVE)
   emailVerified Boolean    @default(false)
+  referralCode  String?    @unique                 // Their sharable code (lazy-created)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -137,6 +144,8 @@ model User {
   notifications    Notification[]
   productSales     ProductSale[] @relation("CustomerProductSales")
   memberships      Membership[]  @relation("CustomerMemberships")
+  referralsSent    Referral[]    @relation("ReferralOwner")
+  referralReceived Referral?     @relation("ReferralReferee")
 
   @@index([email])
   @@index([role])
@@ -769,6 +778,26 @@ model Permission {
 
   @@index([category])
   @@map("permissions")
+}
+
+model Referral {
+  id            String         @id @default(uuid())
+  code          String                                    // snapshot of owner.referralCode used at signup
+  ownerId       String                                    // customer who referred (has the code)
+  refereeId     String?        @unique                    // new customer who signed up via that code
+  status        ReferralStatus @default(PENDING)
+  rewardOwner   Int            @default(0)                // loyalty points awarded to owner when completed
+  rewardReferee Int            @default(0)                // ditto for referee
+  createdAt     DateTime       @default(now())
+  completedAt   DateTime?
+
+  owner   User  @relation("ReferralOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  referee User? @relation("ReferralReferee", fields: [refereeId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([code])
+  @@map("referrals")
 }
 
 model Inquiry {

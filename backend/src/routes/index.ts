@@ -20,6 +20,7 @@ import accessControlRoutes from './access-control.routes';
 import inquiryRoutes from './inquiry.routes';
 import uploadRoutes from './upload.routes';
 import marketingRoutes from './marketing.routes';
+import referralRoutes from './referral.routes';
 
 const router = Router();
 
@@ -65,5 +66,6 @@ router.use('/access-control', accessControlRoutes);
 router.use('/inquiries', inquiryRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/marketing', marketingRoutes);
+router.use('/referrals', referralRoutes);
 
 export default router;

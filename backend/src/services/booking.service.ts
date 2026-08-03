@@ -4,6 +4,7 @@ import { BookingStatus, Prisma } from '@prisma/client';
 import { NotificationService } from './notification.service';
 import { CouponService } from './coupon.service';
 import { MembershipService } from './membership.service';
+import { ReferralService } from './referral.service';
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
@@ -405,6 +406,8 @@ export class BookingService {
               loyaltyPoints: { increment: Math.floor(Number(booking.totalAmount) / 10) },
             },
           });
+          // Award referral rewards if this is the referee's first COMPLETED booking.
+          await ReferralService.onBookingCompleted(booking.customerId, tx);
         }
 
         // Idempotent earning creation (unique on bookingId).
