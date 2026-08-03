@@ -23,7 +23,8 @@ export default function Payouts() {
     queryFn: async () => (await api.get('/finance/payouts')).data,
   });
 
-  const payouts = data?.data || [];
+  // Backend wraps the list as { payouts, total, page, limit } inside data.
+  const payouts = data?.data?.payouts || [];
   const summary = useMemo(() => {
     const totals = { total: 0, paid: 0, pending: 0 };
     payouts.forEach((p: any) => {
