@@ -19,6 +19,7 @@ import { plansRouter, membershipsRouter } from './membership.routes';
 import accessControlRoutes from './access-control.routes';
 import inquiryRoutes from './inquiry.routes';
 import uploadRoutes from './upload.routes';
+import marketingRoutes from './marketing.routes';
 
 const router = Router();
 
@@ -63,5 +64,6 @@ router.use('/memberships', membershipsRouter);
 router.use('/access-control', accessControlRoutes);
 router.use('/inquiries', inquiryRoutes);
 router.use('/uploads', uploadRoutes);
+router.use('/marketing', marketingRoutes);
 
 export default router;

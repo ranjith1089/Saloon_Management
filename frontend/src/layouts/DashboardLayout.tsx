@@ -26,6 +26,7 @@ import {
   Mail,
   Bell,
   Receipt,
+  Sparkles,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth.service';
@@ -72,6 +73,12 @@ const adminMenuGroups: MenuGroup[] = [
       { path: '/staff', label: 'Staff', icon: Users, roles: ['ADMIN', 'MANAGER'] },
       { path: '/customers', label: 'Customers', icon: UserCircle, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
       { path: '/reviews', label: 'Reviews', icon: Star },
+    ],
+  },
+  {
+    heading: 'Growth',
+    items: [
+      { path: '/growth', label: 'Rebook / Win-back / Birthdays', icon: Sparkles, roles: ['ADMIN', 'MANAGER'] },
     ],
   },
   {

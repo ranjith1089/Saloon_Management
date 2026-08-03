@@ -20,6 +20,7 @@ import Memberships from '@/pages/Memberships';
 import AccessControl from '@/pages/AccessControl';
 import Inquiries from '@/pages/Inquiries';
 import ServicePaymentCollection from '@/pages/ServicePaymentCollection';
+import Growth from '@/pages/Growth';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/products"      element={<RoleGuard allow={[...ADMIN_MGR]}><Products /></RoleGuard>} />
         <Route path="/product-sales" element={<RoleGuard allow={[...STAFF_UP]}><ProductSales /></RoleGuard>} />
         <Route path="/service-payment-collection" element={<RoleGuard allow={[...STAFF_UP]}><ServicePaymentCollection /></RoleGuard>} />
+        <Route path="/growth" element={<RoleGuard allow={[...ADMIN_MGR]}><Growth /></RoleGuard>} />
         <Route path="/memberships"   element={<RoleGuard allow={[...ADMIN_MGR]}><Memberships /></RoleGuard>} />
         <Route path="/access-control" element={<RoleGuard allow={[...ADMIN_ONLY]}><AccessControl /></RoleGuard>} />
         <Route path="/inquiries"     element={<RoleGuard allow={[...ADMIN_MGR]}><Inquiries /></RoleGuard>} />
