@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -5,10 +6,16 @@ import { Loader2 } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
 
-interface Props { open: boolean; onClose: () => void; }
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  staff?: any | null;
+}
 
-export default function NewStaffModal({ open, onClose }: Props) {
+export default function NewStaffModal({ open, onClose, staff }: Props) {
   const queryClient = useQueryClient();
+  const isEdit = !!staff;
+
   const { register, handleSubmit, reset, formState: { errors }, watch, setValue } = useForm({
     defaultValues: {
       firstName: '',
@@ -29,6 +36,47 @@ export default function NewStaffModal({ open, onClose }: Props) {
     },
   });
 
+  // Prefill from the staff record whenever it changes (edit mode).
+  useEffect(() => {
+    if (staff) {
+      reset({
+        firstName: staff.user?.profile?.firstName || '',
+        lastName: staff.user?.profile?.lastName || '',
+        email: staff.user?.email || '',
+        password: '',
+        phone: staff.user?.profile?.phone || '',
+        gender: staff.user?.profile?.gender || 'MALE',
+        branchId: staff.branchId || '',
+        designation: staff.designation || '',
+        salary: Number(staff.salary || 0),
+        commissionRate: Number(staff.commissionRate || 0),
+        monthlyTarget: Number(staff.monthlyTarget || 0),
+        experience: Number(staff.experience || 0),
+        bio: staff.bio || '',
+        isVerified: staff.isVerified ?? true,
+        serviceIds: (staff.services || []).map((s: any) => s.serviceId || s.service?.id).filter(Boolean),
+      });
+    } else if (open) {
+      reset({
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+        phone: '',
+        gender: 'MALE',
+        branchId: '',
+        designation: '',
+        salary: 0,
+        commissionRate: 10,
+        monthlyTarget: 0,
+        experience: 0,
+        bio: '',
+        isVerified: true,
+        serviceIds: [],
+      });
+    }
+  }, [staff, open, reset]);
+
   const selectedBranchId = watch('branchId');
   const selectedServiceIds = watch('serviceIds') || [];
 
@@ -47,22 +95,35 @@ export default function NewStaffModal({ open, onClose }: Props) {
     enabled: open && !!selectedBranchId,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (data: any) => api.post('/staff', {
-      ...data,
-      salary: Number(data.salary),
-      commissionRate: Number(data.commissionRate),
-      monthlyTarget: Number(data.monthlyTarget) || null,
-      experience: Number(data.experience),
-    }),
+  const mutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = {
+        ...data,
+        salary: Number(data.salary),
+        commissionRate: Number(data.commissionRate),
+        monthlyTarget: Number(data.monthlyTarget) || null,
+        experience: Number(data.experience),
+      };
+
+      if (isEdit) {
+        // On edit, don't send email/password (backend doesn't touch those here).
+        const { email, password, ...rest } = payload;
+        return api.patch(`/staff/${staff.id}`, rest);
+      }
+      return api.post('/staff', payload);
+    },
     onSuccess: () => {
-      toast.success('Staff created');
+      toast.success(isEdit ? 'Staff updated' : 'Staff created');
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['commissions-summary'] });
       handleClose();
     },
   });
 
-  const handleClose = () => { reset(); onClose(); };
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
 
   const toggleService = (id: string) => {
     if (selectedServiceIds.includes(id)) {
@@ -76,18 +137,18 @@ export default function NewStaffModal({ open, onClose }: Props) {
     <Modal
       open={open}
       onClose={handleClose}
-      title="New Staff Member"
-      description="Add a stylist, therapist or other service provider"
+      title={isEdit ? 'Edit Staff Member' : 'New Staff Member'}
+      description={isEdit ? 'Update stylist details, target and services' : 'Add a stylist, therapist or other service provider'}
       size="lg"
       footer={
         <>
           <button onClick={handleClose} className="btn-secondary">Cancel</button>
           <button
-            onClick={handleSubmit((d) => createMutation.mutate(d))}
-            disabled={createMutation.isPending}
+            onClick={handleSubmit((d) => mutation.mutate(d))}
+            disabled={mutation.isPending}
             className="btn-primary"
           >
-            {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Staff'}
+            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : isEdit ? 'Save Changes' : 'Create Staff'}
           </button>
         </>
       }
@@ -108,18 +169,26 @@ export default function NewStaffModal({ open, onClose }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {isEdit ? (
           <div>
-            <label className="label">Email *</label>
-            <input type="email" className="input" {...register('email', { required: 'Required' })} />
-            {errors.email && <p className="text-xs text-red-600 mt-1">Valid email required</p>}
+            <label className="label">Email</label>
+            <input type="email" className="input bg-gray-50 text-gray-600" value={watch('email')} disabled />
+            <p className="text-xs text-gray-500 mt-1">Email and password can't be changed here.</p>
           </div>
-          <div>
-            <label className="label">Password *</label>
-            <input type="password" className="input" {...register('password', { required: 'Required', minLength: 6 })} placeholder="Min 6 chars" />
-            {errors.password && <p className="text-xs text-red-600 mt-1">Min 6 characters</p>}
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Email *</label>
+              <input type="email" className="input" {...register('email', { required: 'Required' })} />
+              {errors.email && <p className="text-xs text-red-600 mt-1">Valid email required</p>}
+            </div>
+            <div>
+              <label className="label">Password *</label>
+              <input type="password" className="input" {...register('password', { required: 'Required', minLength: 6 })} placeholder="Min 6 chars" />
+              {errors.password && <p className="text-xs text-red-600 mt-1">Min 6 characters</p>}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -208,7 +277,7 @@ export default function NewStaffModal({ open, onClose }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          <input type="checkbox" id="staff-verified" {...register('isVerified')} className="w-4 h-4" defaultChecked />
+          <input type="checkbox" id="staff-verified" {...register('isVerified')} className="w-4 h-4" />
           <label htmlFor="staff-verified" className="text-sm">Mark as verified</label>
         </div>
       </form>

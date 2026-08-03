@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Plus, CheckCircle2, CalendarClock, Target } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { Plus, CheckCircle2, CalendarClock, Target, Edit2, Trash2 } from 'lucide-react';
 import api from '@/services/api';
 import NewStaffModal from '@/components/NewStaffModal';
 import StaffScheduleModal from '@/components/StaffScheduleModal';
 
 export default function Staff() {
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
   const [scheduleFor, setScheduleFor] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -29,6 +32,27 @@ export default function Staff() {
     return map;
   }, [commissionsData]);
 
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => api.delete(`/staff/${id}`),
+    onSuccess: () => {
+      toast.success('Staff removed');
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+    },
+  });
+
+  const openNew = () => {
+    setEditing(null);
+    setModalOpen(true);
+  };
+  const openEdit = (s: any) => {
+    setEditing(s);
+    setModalOpen(true);
+  };
+  const closeModal = () => {
+    setModalOpen(false);
+    setEditing(null);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -36,12 +60,12 @@ export default function Staff() {
           <h1 className="text-2xl font-bold">Staff</h1>
           <p className="text-sm text-gray-500 mt-1">Manage salon staff and stylists</p>
         </div>
-        <button className="btn-primary" onClick={() => setModalOpen(true)}>
+        <button className="btn-primary" onClick={openNew}>
           <Plus className="w-4 h-4 mr-1" /> New Staff
         </button>
       </div>
 
-      <NewStaffModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <NewStaffModal open={modalOpen} onClose={closeModal} staff={editing} />
       <StaffScheduleModal open={!!scheduleFor} onClose={() => setScheduleFor(null)} staff={scheduleFor} />
 
       {isLoading ? (
@@ -63,15 +87,35 @@ export default function Staff() {
                       {s.user?.profile?.firstName?.[0]}{s.user?.profile?.lastName?.[0]}
                     </span>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <h3 className="font-semibold">
+                      <h3 className="font-semibold truncate">
                         {s.user?.profile?.firstName} {s.user?.profile?.lastName}
                       </h3>
-                      {s.isVerified && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                      {s.isVerified && <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />}
                     </div>
-                    <p className="text-xs text-gray-500">{s.designation}</p>
+                    <p className="text-xs text-gray-500 truncate">{s.designation}</p>
                     <p className="text-xs text-gray-400 mt-1">{s.employeeCode}</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <button
+                      onClick={() => openEdit(s)}
+                      className="p-1.5 hover:bg-gray-100 rounded text-gray-500"
+                      title="Edit staff"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Remove ${s.user?.profile?.firstName} ${s.user?.profile?.lastName}? This deletes the user account.`)) {
+                          deleteMut.mutate(s.id);
+                        }
+                      }}
+                      className="p-1.5 hover:bg-red-50 rounded text-red-600"
+                      title="Delete staff"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
