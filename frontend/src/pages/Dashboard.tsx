@@ -63,17 +63,19 @@ export default function Dashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {statCards.map((stat) => (
           <div key={stat.label} className="card">
-            <div className="flex items-center justify-between">
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500 truncate">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1 truncate">{isLoading ? '...' : stat.value}</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-500">{stat.label}</p>
+                <p className="text-2xl font-bold mt-1 tabular-nums break-all">
+                  {isLoading ? '...' : stat.value}
+                </p>
                 {(stat as any).sub && <p className="text-xs text-gray-400 mt-0.5">{(stat as any).sub}</p>}
               </div>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
-                <stat.icon className="w-6 h-6" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
+                <stat.icon className="w-5 h-5" />
               </div>
             </div>
           </div>
