@@ -27,6 +27,8 @@ import {
   Bell,
   Receipt,
   Sparkles,
+  MessageSquare,
+  Gift,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth.service';
@@ -79,6 +81,8 @@ const adminMenuGroups: MenuGroup[] = [
     heading: 'Growth',
     items: [
       { path: '/growth', label: 'Rebook / Win-back / Birthdays', icon: Sparkles, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/referrals', label: 'Referrals', icon: Gift, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/notification-templates', label: 'Message Templates', icon: MessageSquare, roles: ['ADMIN', 'MANAGER'] },
     ],
   },
   {
@@ -106,6 +110,7 @@ const customerMenu = [
   { path: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { path: '/my/bookings', label: 'My Bookings', icon: Calendar },
   { path: '/my/membership', label: 'My Membership', icon: Crown },
+  { path: '/my/referrals', label: 'Refer & Earn', icon: Gift },
   { path: '/my/history', label: 'Payment History', icon: Receipt },
   { path: '/reviews', label: 'My Reviews', icon: Star },
   { path: '/notifications', label: 'Notifications', icon: Bell },

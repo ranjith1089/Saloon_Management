@@ -21,6 +21,9 @@ import AccessControl from '@/pages/AccessControl';
 import Inquiries from '@/pages/Inquiries';
 import ServicePaymentCollection from '@/pages/ServicePaymentCollection';
 import Growth from '@/pages/Growth';
+import AdminReferrals from '@/pages/AdminReferrals';
+import MyReferrals from '@/pages/my/MyReferrals';
+import NotificationTemplates from '@/pages/NotificationTemplates';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
@@ -53,6 +56,8 @@ export default function App() {
         <Route path="/product-sales" element={<RoleGuard allow={[...STAFF_UP]}><ProductSales /></RoleGuard>} />
         <Route path="/service-payment-collection" element={<RoleGuard allow={[...STAFF_UP]}><ServicePaymentCollection /></RoleGuard>} />
         <Route path="/growth" element={<RoleGuard allow={[...ADMIN_MGR]}><Growth /></RoleGuard>} />
+        <Route path="/referrals" element={<RoleGuard allow={[...ADMIN_MGR]}><AdminReferrals /></RoleGuard>} />
+        <Route path="/notification-templates" element={<RoleGuard allow={[...ADMIN_MGR]}><NotificationTemplates /></RoleGuard>} />
         <Route path="/memberships"   element={<RoleGuard allow={[...ADMIN_MGR]}><Memberships /></RoleGuard>} />
         <Route path="/access-control" element={<RoleGuard allow={[...ADMIN_ONLY]}><AccessControl /></RoleGuard>} />
         <Route path="/inquiries"     element={<RoleGuard allow={[...ADMIN_MGR]}><Inquiries /></RoleGuard>} />
@@ -67,6 +72,7 @@ export default function App() {
         <Route path="/my/profile"     element={<RoleGuard allow={['CUSTOMER']}><MyProfile /></RoleGuard>} />
         <Route path="/my/membership"  element={<RoleGuard allow={['CUSTOMER']}><MyMembership /></RoleGuard>} />
         <Route path="/my/history"     element={<RoleGuard allow={['CUSTOMER']}><MyHistory /></RoleGuard>} />
+        <Route path="/my/referrals"   element={<RoleGuard allow={['CUSTOMER']}><MyReferrals /></RoleGuard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

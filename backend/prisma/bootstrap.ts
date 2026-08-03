@@ -100,6 +100,55 @@ async function main() {
   console.log('🔐 Seeding access-control catalog…');
   const { AccessControlService } = await import('../src/services/access-control.service');
   await AccessControlService.seedIfNeeded();
+
+  // Seed default notification templates so the admin sees something on
+  // day one. Only inserts a template if a template with that name doesn't
+  // already exist — never touches user edits.
+  console.log('📩 Seeding notification templates…');
+  const DEFAULTS = [
+    { name: 'booking_confirmed', type: 'BOOKING_CREATED', channel: 'IN_APP',
+      subject: 'Booking Confirmed',
+      body: 'Hi {{name}}, your booking for {{service}} on {{date}} at {{time}} with {{staff}} is confirmed. See you soon!',
+      variables: ['name','service','date','time','staff','branch'] },
+    { name: 'booking_reminder_24h', type: 'BOOKING_REMINDER', channel: 'IN_APP',
+      subject: 'Reminder: your appointment tomorrow',
+      body: "Reminder — you're booked for {{service}} tomorrow at {{time}} with {{staff}}. Reply if you need to reschedule.",
+      variables: ['name','service','time','staff','branch'] },
+    { name: 'booking_completed_review', type: 'BOOKING_COMPLETED', channel: 'IN_APP',
+      subject: 'Thanks for visiting!',
+      body: 'Hi {{name}}, thanks for choosing us today! If you enjoyed your visit, would you leave us a review? {{reviewLink}}',
+      variables: ['name','service','reviewLink'] },
+    { name: 'booking_cancelled', type: 'BOOKING_CANCELLED', channel: 'IN_APP',
+      subject: 'Booking Cancelled',
+      body: 'Your {{service}} booking on {{date}} at {{time}} has been cancelled. {{reason}}',
+      variables: ['name','service','date','time','reason'] },
+    { name: 'birthday_wish', type: 'PROMOTION', channel: 'IN_APP',
+      subject: 'Happy Birthday {{name}}!',
+      body: '🎉 Happy Birthday {{name}}! Come by this week and enjoy 25% off any service with code BDAY.',
+      variables: ['name'] },
+    { name: 'rebook_nudge', type: 'PROMOTION', channel: 'IN_APP',
+      subject: 'Ready for your next visit?',
+      body: "It's been {{days}} days since your last {{service}}. Book your next appointment when you're ready!",
+      variables: ['name','days','service'] },
+  ];
+  const prismaMod = await import('@prisma/client');
+  const p = new prismaMod.PrismaClient();
+  for (const t of DEFAULTS) {
+    const existing = await p.notificationTemplate.findUnique({ where: { name: t.name } });
+    if (!existing) {
+      await p.notificationTemplate.create({
+        data: {
+          name: t.name,
+          type: t.type as any,
+          channel: t.channel as any,
+          subject: t.subject,
+          body: t.body,
+          variables: t.variables,
+        },
+      });
+    }
+  }
+  await p.$disconnect();
 }
 
 main()
