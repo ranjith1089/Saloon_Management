@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Plus, Wallet, CheckCircle2, XCircle, Loader2, Eye } from 'lucide-react';
 import api from '@/services/api';
 import Modal from '@/components/Modal';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 const statusColors: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
@@ -192,12 +193,13 @@ function StatCard({ label, value, tone }: { label: string; value: number; tone: 
 // ============ NEW PAYOUT MODAL ============
 function NewPayoutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const queryClient = useQueryClient();
+  const { methods: paymentMethods, configured: methodsConfigured } = usePaymentMethods();
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
     defaultValues: {
       staffId: '',
       periodStart: firstOfMonth(),
       periodEnd: today(),
-      paymentMethod: 'Bank Transfer',
+      paymentMethod: '',
       reference: '',
       notes: '',
     },
@@ -310,7 +312,17 @@ function NewPayoutModal({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Payment Method</label>
-            <input className="input" {...register('paymentMethod')} />
+            <select className="input" {...register('paymentMethod')}>
+              <option value="">-- Select method --</option>
+              {paymentMethods.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+            {!methodsConfigured && (
+              <p className="text-[11px] text-gray-500 mt-1">
+                Configure real methods in Settings → Payment Methods.
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Reference</label>

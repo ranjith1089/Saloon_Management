@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 interface Props {
   open: boolean;
@@ -13,6 +14,7 @@ interface Props {
 
 export default function NewMembershipModal({ open, onClose }: Props) {
   const queryClient = useQueryClient();
+  const { methods: paymentMethods } = usePaymentMethods();
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
       customerId: '',
@@ -132,10 +134,9 @@ export default function NewMembershipModal({ open, onClose }: Props) {
           <div>
             <label className="label">Payment Method</label>
             <select className="input" {...register('paymentMethod')}>
-              <option>Cash</option>
-              <option>UPI</option>
-              <option>Card</option>
-              <option>Bank Transfer</option>
+              {paymentMethods.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
           </div>
         </div>

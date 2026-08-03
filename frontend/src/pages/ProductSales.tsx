@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import Modal from '@/components/Modal';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 interface CartLine {
   productId: string;
@@ -18,6 +19,7 @@ interface CartLine {
 
 export default function ProductSales() {
   const queryClient = useQueryClient();
+  const { methods: paymentMethods } = usePaymentMethods();
   const [branchId, setBranchId] = useState<string>('');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -342,10 +344,9 @@ export default function ProductSales() {
                       <div>
                         <label className="label text-xs flex items-center gap-1"><CreditCard className="w-3 h-3" /> Payment</label>
                         <select className="input !py-1.5 text-sm" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
-                          <option>Cash</option>
-                          <option>UPI</option>
-                          <option>Card</option>
-                          <option>Bank Transfer</option>
+                          {paymentMethods.map((m) => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
                         </select>
                       </div>
                       <div>

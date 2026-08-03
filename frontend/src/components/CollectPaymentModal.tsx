@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Loader2, CreditCard } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
+import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 
 interface Props {
   open: boolean;
@@ -12,10 +13,9 @@ interface Props {
   booking: any | null;
 }
 
-const FALLBACK_METHODS = ['Cash', 'UPI', 'Card', 'Bank Transfer'];
-
 export default function CollectPaymentModal({ open, onClose, booking }: Props) {
   const queryClient = useQueryClient();
+  const { methods: availableMethods, configured: methodsConfigured } = usePaymentMethods();
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -25,18 +25,6 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
       alsoComplete: false,
     },
   });
-
-  // Load enabled payment methods from Settings (falls back to defaults if empty).
-  const { data: methodsData } = useQuery({
-    queryKey: ['payment-methods-enabled'],
-    queryFn: async () => (await api.get('/settings/payment-methods')).data.data,
-    enabled: open,
-  });
-
-  const availableMethods: string[] =
-    methodsData && methodsData.length > 0
-      ? methodsData.filter((m: any) => m.enabled).map((m: any) => m.name)
-      : FALLBACK_METHODS;
 
   useEffect(() => {
     if (open && booking) {
@@ -141,7 +129,7 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
               <option key={m} value={m}>{m}</option>
             ))}
           </select>
-          {methodsData && methodsData.length === 0 && (
+          {!methodsConfigured && (
             <p className="text-[11px] text-gray-500 mt-1">
               Configure real payment methods in Settings → Payment Methods.
             </p>
