@@ -16,6 +16,8 @@ import Payouts from '@/pages/Payouts';
 import Products from '@/pages/Products';
 import ProductSales from '@/pages/ProductSales';
 import Memberships from '@/pages/Memberships';
+import AccessControl from '@/pages/AccessControl';
+import Inquiries from '@/pages/Inquiries';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
@@ -39,6 +41,8 @@ export default function App() {
         <Route path="/products" element={<Products />} />
         <Route path="/product-sales" element={<ProductSales />} />
         <Route path="/memberships" element={<Memberships />} />
+        <Route path="/access-control" element={<AccessControl />} />
+        <Route path="/inquiries" element={<Inquiries />} />
         <Route path="/coupons" element={<Coupons />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/reports" element={<Reports />} />

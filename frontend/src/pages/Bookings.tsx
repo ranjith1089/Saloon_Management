@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Calendar as CalendarIcon, MoreVertical, List, LayoutGrid, X, CreditCard, Check } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, MoreVertical, List, LayoutGrid, Columns3, X, CreditCard, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
 import NewBookingModal from '@/components/NewBookingModal';
 import BookingCalendar from '@/components/BookingCalendar';
+import BookingStaffGrid from '@/components/BookingStaffGrid';
 import CollectPaymentModal from '@/components/CollectPaymentModal';
 
-type Mode = 'table' | 'calendar';
+type Mode = 'table' | 'calendar' | 'grid';
 
 export default function Bookings() {
   const queryClient = useQueryClient();
@@ -16,6 +17,7 @@ export default function Bookings() {
   const [mode, setMode] = useState<Mode>('table');
   const [selected, setSelected] = useState<any | null>(null);
   const [payingFor, setPayingFor] = useState<any | null>(null);
+  const [prefill, setPrefill] = useState<{ staffId?: string; startTime?: string; date?: string; branchId?: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['bookings'],
@@ -80,8 +82,16 @@ export default function Bookings() {
             >
               <LayoutGrid className="w-3.5 h-3.5" /> Calendar
             </button>
+            <button
+              onClick={() => setMode('grid')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md inline-flex items-center gap-1 ${
+                mode === 'grid' ? 'bg-white shadow-sm text-primary-700' : 'text-gray-600'
+              }`}
+            >
+              <Columns3 className="w-3.5 h-3.5" /> Staff Grid
+            </button>
           </div>
-          <button className="btn-primary" onClick={() => setModalOpen(true)}>
+          <button className="btn-primary" onClick={() => { setPrefill(null); setModalOpen(true); }}>
             <Plus className="w-4 h-4 mr-1" />
             New Booking
           </button>
@@ -90,6 +100,14 @@ export default function Bookings() {
 
       {mode === 'calendar' ? (
         <BookingCalendar onSelectBooking={setSelected} />
+      ) : mode === 'grid' ? (
+        <BookingStaffGrid
+          onSelectBooking={setSelected}
+          onCreateBooking={(p) => {
+            setPrefill(p);
+            setModalOpen(true);
+          }}
+        />
       ) : (
         <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
@@ -284,7 +302,11 @@ export default function Bookings() {
         </div>
       )}
 
-      <NewBookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <NewBookingModal
+        open={modalOpen}
+        onClose={() => { setModalOpen(false); setPrefill(null); }}
+        prefill={prefill || undefined}
+      />
       <CollectPaymentModal
         open={!!payingFor}
         onClose={() => setPayingFor(null)}

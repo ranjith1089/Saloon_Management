@@ -107,6 +107,13 @@ enum MembershipStatus {
   CANCELLED
 }
 
+enum InquiryStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  SPAM
+}
+
 // ============================================
 // USER & AUTH
 // ============================================
@@ -728,6 +735,54 @@ model MembershipPlan {
   memberships Membership[]
 
   @@map("membership_plans")
+}
+
+// ============================================
+// ACCESS CONTROL (Role × Permission matrix)
+// ============================================
+
+model Permission {
+  id         String   @id @default(uuid())
+  key        String   @unique   // e.g. "bookings.delete"
+  label      String              // "Delete bookings"
+  category   String              // "Bookings"
+  createdAt  DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+model Inquiry {
+  id            String        @id @default(uuid())
+  name          String
+  email         String
+  phone         String?
+  subject       String?
+  message       String
+  source        String?         // "website" / "walkin" / "phone" / etc.
+  status        InquiryStatus  @default(NEW)
+  internalNote  String?
+  respondedById String?         // Admin user who last handled it
+  respondedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("inquiries")
+}
+
+model RolePermission {
+  role         UserRole
+  permissionId String
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([role, permissionId])
+  @@index([role])
+  @@map("role_permissions")
 }
 
 model Membership {

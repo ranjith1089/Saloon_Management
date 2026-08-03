@@ -16,6 +16,8 @@ import notificationRoutes from './notification.routes';
 import settingsRoutes from './settings.routes';
 import productRoutes, { productSalesRouter } from './product.routes';
 import { plansRouter, membershipsRouter } from './membership.routes';
+import accessControlRoutes from './access-control.routes';
+import inquiryRoutes from './inquiry.routes';
 
 const router = Router();
 
@@ -57,5 +59,7 @@ router.use('/products', productRoutes);
 router.use('/product-sales', productSalesRouter);
 router.use('/membership-plans', plansRouter);
 router.use('/memberships', membershipsRouter);
+router.use('/access-control', accessControlRoutes);
+router.use('/inquiries', inquiryRoutes);
 
 export default router;

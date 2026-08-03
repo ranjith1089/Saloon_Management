@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -9,6 +9,12 @@ import api from '@/services/api';
 interface Props {
   open: boolean;
   onClose: () => void;
+  prefill?: {
+    staffId?: string;
+    startTime?: string;
+    date?: string;
+    branchId?: string;
+  };
 }
 
 interface FormValues {
@@ -27,7 +33,7 @@ interface AppliedCoupon {
   discountAmount: number;
 }
 
-export default function NewBookingModal({ open, onClose }: Props) {
+export default function NewBookingModal({ open, onClose, prefill }: Props) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
   const [couponInput, setCouponInput] = useState('');
@@ -51,6 +57,17 @@ export default function NewBookingModal({ open, onClose }: Props) {
   const watchStaff = watch('staffId');
   const watchDate = watch('bookingDate');
   const watchCustomer = watch('customerId');
+
+  // Apply prefill from the staff-grid view when the modal opens.
+  useEffect(() => {
+    if (open && prefill) {
+      if (prefill.branchId) setValue('branchId', prefill.branchId);
+      if (prefill.staffId) setValue('staffId', prefill.staffId);
+      if (prefill.startTime) setValue('startTime', prefill.startTime);
+      if (prefill.date) setValue('bookingDate', prefill.date);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, prefill]);
 
   // Load dropdowns
   const { data: branches } = useQuery({

@@ -22,6 +22,8 @@ import {
   Package,
   ShoppingBag,
   Crown,
+  ShieldCheck,
+  Mail,
   Bell,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -43,7 +45,9 @@ const menuItems = [
   { path: '/coupons', label: 'Coupons', icon: Ticket, roles: ['ADMIN', 'MANAGER'] },
   { path: '/reviews', label: 'Reviews', icon: Star },
   { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/inquiries', label: 'Inquiries', icon: Mail, roles: ['ADMIN', 'MANAGER'] },
   { path: '/notifications', label: 'Notifications', icon: Bell },
+  { path: '/access-control', label: 'Access Control', icon: ShieldCheck, roles: ['ADMIN'] },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -93,21 +97,7 @@ export default function DashboardLayout() {
 
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {filteredMenu.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`
-              }
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {item.label}
-            </NavLink>
+            <SidebarLink key={item.path} item={item} onClick={() => setSidebarOpen(false)} />
           ))}
         </nav>
 
@@ -177,6 +167,40 @@ export default function DashboardLayout() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SidebarLink({ item, onClick }: { item: any; onClick: () => void }) {
+  // Only Staff shows the unverified-count red dot for now.
+  const showUnverifiedBadge = item.path === '/staff';
+  const { data: unverifiedCount = 0 } = useQuery({
+    queryKey: ['staff-unverified-count'],
+    queryFn: async () => {
+      const r = await api.get('/staff', { params: { isVerified: false, limit: 1 } });
+      return r.data?.meta?.pagination?.total ?? r.data?.data?.length ?? 0;
+    },
+    enabled: showUnverifiedBadge,
+    refetchInterval: 60_000,
+  });
+
+  return (
+    <NavLink
+      to={item.path}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          isActive ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-100'
+        }`
+      }
+    >
+      <item.icon className="w-5 h-5 flex-shrink-0" />
+      <span className="flex-1">{item.label}</span>
+      {showUnverifiedBadge && unverifiedCount > 0 && (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-500 text-white rounded-full">
+          {unverifiedCount}
+        </span>
+      )}
+    </NavLink>
   );
 }
 

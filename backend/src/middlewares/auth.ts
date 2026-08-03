@@ -40,3 +40,25 @@ export const authorize = (...roles: string[]) => {
     next();
   };
 };
+
+/**
+ * Fine-grained permission gate. Reads the role→permission matrix (cached ~60s)
+ * and allows the request only if the user's role has the given permission key.
+ * Use for actions where roles alone are too coarse.
+ *
+ *   router.delete('/:id', authenticate, requirePermission('bookings.delete'), handler)
+ */
+export const requirePermission = (key: string) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) throw new UnauthorizedError('User not authenticated');
+      // Lazy import to avoid circular dependency (service imports prisma).
+      const { AccessControlService } = await import('../services/access-control.service');
+      const ok = await AccessControlService.hasPermission(req.user.role as any, key);
+      if (!ok) throw new ForbiddenError(`Missing permission: ${key}`);
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+};

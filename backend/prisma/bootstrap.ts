@@ -94,6 +94,12 @@ async function main() {
   } else {
     console.log(`✓ Database has ${userCount} users — skipping seed.`);
   }
+
+  // Idempotent — adds new permissions on subsequent boots, keeps existing
+  // role assignments untouched, and guarantees ADMIN has everything.
+  console.log('🔐 Seeding access-control catalog…');
+  const { AccessControlService } = await import('../src/services/access-control.service');
+  await AccessControlService.seedIfNeeded();
 }
 
 main()
