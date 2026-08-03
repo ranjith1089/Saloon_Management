@@ -32,16 +32,19 @@ import toast from 'react-hot-toast';
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  // CUSTOMER's Bookings link is relabeled below at render time.
   { path: '/bookings', label: 'Bookings', icon: Calendar },
   { path: '/branches', label: 'Branches', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
   { path: '/services', label: 'Services', icon: Scissors, roles: ['ADMIN', 'MANAGER'] },
   { path: '/staff', label: 'Staff', icon: Users, roles: ['ADMIN', 'MANAGER'] },
   { path: '/products', label: 'Products', icon: Package, roles: ['ADMIN', 'MANAGER'] },
   { path: '/product-sales', label: 'Product Sales', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-  { path: '/customers', label: 'Customers', icon: UserCircle },
+  // Customers is now hidden from CUSTOMER (their own data was leaking here).
+  { path: '/customers', label: 'Customers', icon: UserCircle, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+  // CUSTOMER sees only their own membership via the drawer/detail — not the admin list.
   { path: '/memberships', label: 'Memberships', icon: Crown, roles: ['ADMIN', 'MANAGER'] },
   { path: '/earnings', label: 'Earnings', icon: DollarSign, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-  { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER'] },
+  { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
   { path: '/coupons', label: 'Coupons', icon: Ticket, roles: ['ADMIN', 'MANAGER'] },
   { path: '/reviews', label: 'Reviews', icon: Star },
   { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
@@ -68,7 +71,13 @@ export default function DashboardLayout() {
     navigate('/login');
   };
 
-  const filteredMenu = menuItems.filter((item) => !item.roles || item.roles.includes(user?.role || ''));
+  const filteredMenu = menuItems
+    .filter((item) => !item.roles || item.roles.includes(user?.role || ''))
+    .map((item) =>
+      user?.role === 'CUSTOMER' && item.path === '/bookings'
+        ? { ...item, label: 'My Bookings' }
+        : item
+    );
 
   return (
     <div className="min-h-screen bg-gray-50">

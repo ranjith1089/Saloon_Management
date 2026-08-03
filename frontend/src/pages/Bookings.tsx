@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Calendar as CalendarIcon, MoreVertical, List, LayoutGrid, Columns3, X, CreditCard, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
 import NewBookingModal from '@/components/NewBookingModal';
 import BookingCalendar from '@/components/BookingCalendar';
 import BookingStaffGrid from '@/components/BookingStaffGrid';
@@ -12,6 +13,8 @@ type Mode = 'table' | 'calendar' | 'grid';
 
 export default function Bookings() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isCustomer = user?.role === 'CUSTOMER';
   const [modalOpen, setModalOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('table');
@@ -162,19 +165,21 @@ export default function Bookings() {
                             <Check className="w-3 h-3" />
                             {booking.paymentMethod || 'PAID'}
                           </span>
-                        ) : booking.status !== 'CANCELLED' ? (
+                        ) : booking.status === 'CANCELLED' ? (
+                          <span className="text-xs text-gray-400">—</span>
+                        ) : isCustomer ? (
+                          <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">PENDING</span>
+                        ) : (
                           <button
                             onClick={() => setPayingFor(booking)}
                             className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 font-medium"
                           >
                             <CreditCard className="w-3 h-3" /> Collect
                           </button>
-                        ) : (
-                          <span className="text-xs text-gray-400">—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 relative">
-                        {nextStatuses[booking.status]?.length > 0 && (
+                        {!isCustomer && nextStatuses[booking.status]?.length > 0 && (
                           <>
                             <button
                               onClick={() => setOpenMenu(openMenu === booking.id ? null : booking.id)}

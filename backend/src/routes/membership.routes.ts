@@ -31,8 +31,9 @@ export const membershipsRouter = (() => {
   // Active lookup (used by booking + POS to preview prices) — all roles.
   r.get('/active/:customerId', MembershipController.active);
   r.post('/', authorize('ADMIN', 'MANAGER'), validate(createMembershipSchema), MembershipController.create);
-  r.get('/', authorize('ADMIN', 'MANAGER'), MembershipController.findAll);
-  r.get('/:id', authorize('ADMIN', 'MANAGER'), MembershipController.findById);
+  // List + detail are scoped in the controller — CUSTOMER sees only their own.
+  r.get('/', MembershipController.findAll);
+  r.get('/:id', MembershipController.findById);
   r.patch('/:id', authorize('ADMIN', 'MANAGER'), validate(updateMembershipSchema), MembershipController.update);
   r.post('/:id/cancel', authorize('ADMIN', 'MANAGER'), MembershipController.cancel);
   return r;

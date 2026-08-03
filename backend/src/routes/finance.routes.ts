@@ -14,15 +14,15 @@ router.get('/taxes/:id', TaxController.findById);
 router.patch('/taxes/:id', authorize('ADMIN'), TaxController.update);
 router.delete('/taxes/:id', authorize('ADMIN'), TaxController.delete);
 
-// Earnings routes
+// Earnings routes — STAFF may list their own via the scoped controller
 router.post('/earnings', authorize('ADMIN', 'MANAGER'), EarningController.create);
-router.get('/earnings', authorize('ADMIN', 'MANAGER'), EarningController.findAll);
-router.get('/earnings/staff/:staffId', EarningController.getStaffEarnings);
+router.get('/earnings', authorize('ADMIN', 'MANAGER', 'STAFF'), EarningController.findAll);
+router.get('/earnings/staff/:staffId', authorize('ADMIN', 'MANAGER', 'STAFF'), EarningController.getStaffEarnings);
 
-// Payouts routes
+// Payouts routes — STAFF may list their own via the scoped controller
 router.post('/payouts', authorize('ADMIN', 'MANAGER'), PayoutController.create);
-router.get('/payouts', authorize('ADMIN', 'MANAGER'), PayoutController.findAll);
-router.get('/payouts/:id', PayoutController.findById);
+router.get('/payouts', authorize('ADMIN', 'MANAGER', 'STAFF'), PayoutController.findAll);
+router.get('/payouts/:id', authorize('ADMIN', 'MANAGER', 'STAFF'), PayoutController.findById);
 router.patch('/payouts/:id/pay', authorize('ADMIN'), PayoutController.markAsPaid);
 router.patch('/payouts/:id/cancel', authorize('ADMIN'), PayoutController.cancel);
 

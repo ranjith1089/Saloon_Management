@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { MembershipPlanService, MembershipService } from '../services/membership.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
+import { ForbiddenError } from '../utils/ApiError';
+import { isCustomer, membershipListScope } from '../utils/scope';
 
 export class MembershipPlanController {
   static create = asyncHandler(async (req: Request, res: Response) => {
@@ -32,7 +34,8 @@ export class MembershipController {
     return ApiResponse.created(res, 'Membership created', m);
   });
   static findAll = asyncHandler(async (req: Request, res: Response) => {
-    const { memberships, total, page, limit, totalRevenue } = await MembershipService.findAll(req.query);
+    const scope = await membershipListScope(req);
+    const { memberships, total, page, limit, totalRevenue } = await MembershipService.findAll(req.query, scope);
     return ApiResponse.success(res, 'Memberships retrieved', memberships, 200, {
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       totalRevenue,
@@ -40,6 +43,9 @@ export class MembershipController {
   });
   static findById = asyncHandler(async (req: Request, res: Response) => {
     const m = await MembershipService.findById(req.params.id);
+    if (isCustomer(req) && m.customerId !== req.user!.userId) {
+      throw new ForbiddenError('Not your membership');
+    }
     return ApiResponse.success(res, 'Membership retrieved', m);
   });
   static update = asyncHandler(async (req: Request, res: Response) => {

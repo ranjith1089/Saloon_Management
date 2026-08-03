@@ -175,16 +175,16 @@ export class BookingService {
     });
   }
 
-  static async findAll(query: any) {
+  static async findAll(query: any, scope: Record<string, any> = {}) {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = { ...scope };
     if (query.status) where.status = query.status;
     if (query.branchId) where.branchId = query.branchId;
-    if (query.staffId) where.staffId = query.staffId;
-    if (query.customerId) where.customerId = query.customerId;
+    if (query.staffId && !scope.staffId) where.staffId = query.staffId;
+    if (query.customerId && !scope.customerId) where.customerId = query.customerId;
     if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
     if (query.startDate && query.endDate) {
       where.bookingDate = {
@@ -435,15 +435,16 @@ export class BookingService {
     });
   }
 
-  static async getCalendar(query: any) {
+  static async getCalendar(query: any, scope: Record<string, any> = {}) {
     const startDate = new Date(query.startDate);
     const endDate = new Date(query.endDate);
 
     const where: any = {
+      ...scope,
       bookingDate: { gte: startDate, lte: endDate },
     };
     if (query.branchId) where.branchId = query.branchId;
-    if (query.staffId) where.staffId = query.staffId;
+    if (query.staffId && !scope.staffId) where.staffId = query.staffId;
 
     return prisma.booking.findMany({
       where,

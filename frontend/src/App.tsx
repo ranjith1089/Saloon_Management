@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RoleGuard from '@/components/RoleGuard';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -22,6 +23,10 @@ import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
 
+const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
+const STAFF_UP = ['ADMIN', 'MANAGER', 'STAFF'] as const;
+const ADMIN_ONLY = ['ADMIN'] as const;
+
 export default function App() {
   return (
     <Routes>
@@ -32,20 +37,20 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bookings" element={<Bookings />} />
-        <Route path="/branches" element={<Branches />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/staff" element={<Staff />} />
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/earnings" element={<Earnings />} />
-        <Route path="/payouts" element={<Payouts />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/product-sales" element={<ProductSales />} />
-        <Route path="/memberships" element={<Memberships />} />
-        <Route path="/access-control" element={<AccessControl />} />
-        <Route path="/inquiries" element={<Inquiries />} />
-        <Route path="/coupons" element={<Coupons />} />
+        <Route path="/branches"      element={<RoleGuard allow={[...ADMIN_MGR]}><Branches /></RoleGuard>} />
+        <Route path="/services"      element={<RoleGuard allow={[...ADMIN_MGR]}><Services /></RoleGuard>} />
+        <Route path="/staff"         element={<RoleGuard allow={[...ADMIN_MGR]}><Staff /></RoleGuard>} />
+        <Route path="/customers"     element={<RoleGuard allow={[...STAFF_UP]}><Customers /></RoleGuard>} />
+        <Route path="/earnings"      element={<RoleGuard allow={[...STAFF_UP]}><Earnings /></RoleGuard>} />
+        <Route path="/payouts"       element={<RoleGuard allow={[...STAFF_UP]}><Payouts /></RoleGuard>} />
+        <Route path="/products"      element={<RoleGuard allow={[...ADMIN_MGR]}><Products /></RoleGuard>} />
+        <Route path="/product-sales" element={<RoleGuard allow={[...STAFF_UP]}><ProductSales /></RoleGuard>} />
+        <Route path="/memberships"   element={<RoleGuard allow={[...ADMIN_MGR]}><Memberships /></RoleGuard>} />
+        <Route path="/access-control" element={<RoleGuard allow={[...ADMIN_ONLY]}><AccessControl /></RoleGuard>} />
+        <Route path="/inquiries"     element={<RoleGuard allow={[...ADMIN_MGR]}><Inquiries /></RoleGuard>} />
+        <Route path="/coupons"       element={<RoleGuard allow={[...ADMIN_MGR]}><Coupons /></RoleGuard>} />
         <Route path="/reviews" element={<Reviews />} />
-        <Route path="/reports" element={<Reports />} />
+        <Route path="/reports"       element={<RoleGuard allow={[...ADMIN_MGR]}><Reports /></RoleGuard>} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

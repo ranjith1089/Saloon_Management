@@ -63,13 +63,13 @@ export class MembershipService {
     });
   }
 
-  static async findAll(query: any) {
+  static async findAll(query: any, scope: Record<string, any> = {}) {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '20', 10);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.customerId) where.customerId = query.customerId;
+    const where: any = { ...scope };
+    if (query.customerId && !scope.customerId) where.customerId = query.customerId;
     if (query.planId) where.planId = query.planId;
 
     // "active" filter takes both status = ACTIVE and endDate > now.

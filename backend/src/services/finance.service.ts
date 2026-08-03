@@ -68,13 +68,13 @@ export class EarningService {
     });
   }
 
-  static async findAll(query: any) {
+  static async findAll(query: any, scope: Record<string, any> = {}) {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.staffId) where.staffId = query.staffId;
+    const where: any = { ...scope };
+    if (query.staffId && !scope.staffId) where.staffId = query.staffId;
     if (query.payoutStatus) where.payoutStatus = query.payoutStatus;
     if (query.startDate && query.endDate) {
       where.createdAt = { gte: new Date(query.startDate), lte: new Date(query.endDate) };
@@ -171,13 +171,13 @@ export class PayoutService {
     });
   }
 
-  static async findAll(query: any) {
+  static async findAll(query: any, scope: Record<string, any> = {}) {
     const page = parseInt(query.page || '1', 10);
     const limit = parseInt(query.limit || '10', 10);
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (query.staffId) where.staffId = query.staffId;
+    const where: any = { ...scope };
+    if (query.staffId && !scope.staffId) where.staffId = query.staffId;
     if (query.status) where.status = query.status;
 
     const [payouts, total] = await Promise.all([

@@ -6,6 +6,8 @@ import {
 } from '../services/product.service';
 import { ApiResponse } from '../utils/ApiResponse';
 import { asyncHandler } from '../utils/asyncHandler';
+import { ForbiddenError } from '../utils/ApiError';
+import { isCustomer } from '../utils/scope';
 
 export class ProductCategoryController {
   static create = asyncHandler(async (req: Request, res: Response) => {
@@ -63,10 +65,12 @@ export class ProductController {
 
 export class ProductSaleController {
   static create = asyncHandler(async (req: Request, res: Response) => {
+    if (isCustomer(req)) throw new ForbiddenError('Not allowed');
     const sale = await ProductSaleService.create(req.body);
     return ApiResponse.created(res, 'Sale recorded', sale);
   });
   static findAll = asyncHandler(async (req: Request, res: Response) => {
+    if (isCustomer(req)) throw new ForbiddenError('Not allowed');
     const { sales, total, page, limit, totalRevenue } = await ProductSaleService.findAll(req.query);
     return ApiResponse.success(res, 'Sales retrieved', sales, 200, {
       pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
@@ -74,10 +78,12 @@ export class ProductSaleController {
     });
   });
   static findById = asyncHandler(async (req: Request, res: Response) => {
+    if (isCustomer(req)) throw new ForbiddenError('Not allowed');
     const s = await ProductSaleService.findById(req.params.id);
     return ApiResponse.success(res, 'Sale retrieved', s);
   });
   static void = asyncHandler(async (req: Request, res: Response) => {
+    if (isCustomer(req)) throw new ForbiddenError('Not allowed');
     const s = await ProductSaleService.voidSale(req.params.id, req.body.reason);
     return ApiResponse.success(res, 'Sale voided', s);
   });
