@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { BookingController } from '../controllers/booking.controller';
 import { authenticate, authorize } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
-import { collectPaymentSchema } from '../validators/booking.validator';
+import { collectPaymentSchema, quickSaleSchema } from '../validators/booking.validator';
 
 const router = Router();
 
@@ -20,6 +20,12 @@ router.post(
   authorize('ADMIN', 'MANAGER', 'STAFF'),
   validate(collectPaymentSchema),
   BookingController.collectPayment
+);
+router.post(
+  '/quick-sale',
+  authorize('ADMIN', 'MANAGER', 'STAFF'),
+  validate(quickSaleSchema),
+  BookingController.quickSale
 );
 router.delete('/:id', authorize('ADMIN', 'MANAGER'), BookingController.delete);
 

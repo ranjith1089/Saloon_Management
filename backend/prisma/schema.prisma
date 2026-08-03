@@ -382,7 +382,9 @@ model Customer {
 model Booking {
   id            String        @id @default(uuid())
   bookingNumber String        @unique
-  customerId    String
+  customerId    String?                       // null when this is a walk-in service sale
+  walkInName    String?
+  walkInPhone   String?
   staffId       String
   branchId      String
   serviceId     String
@@ -404,7 +406,7 @@ model Booking {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  customer User    @relation("CustomerBookings", fields: [customerId], references: [id])
+  customer User?   @relation("CustomerBookings", fields: [customerId], references: [id])
   staff    Staff   @relation(fields: [staffId], references: [id])
   branch   Branch  @relation(fields: [branchId], references: [id])
   service  Service @relation(fields: [serviceId], references: [id])

@@ -91,7 +91,7 @@ export function isAdminOrManager(req: any) {
  * For STAFF: they can only touch bookings assigned to them.
  * ADMIN/MANAGER: pass.
  */
-export async function assertBookingAccess(req: any, booking: { customerId: string; staffId: string }) {
+export async function assertBookingAccess(req: any, booking: { customerId: string | null; staffId: string }) {
   const r = role(req);
   if (r === 'ADMIN' || r === 'MANAGER') return;
   if (r === 'CUSTOMER') {

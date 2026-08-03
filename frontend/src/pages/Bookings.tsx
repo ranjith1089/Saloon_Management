@@ -264,8 +264,19 @@ export default function Bookings() {
                           <div className="text-[11px] text-gray-400 font-mono mt-0.5">{booking.bookingNumber}</div>
                         </td>
                         <td className="px-4 py-3">
-                          <div>{booking.customer?.profile?.firstName} {booking.customer?.profile?.lastName}</div>
-                          <div className="text-xs text-gray-500">{booking.customer?.email}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span>
+                              {booking.customer?.profile?.firstName
+                                ? `${booking.customer.profile.firstName} ${booking.customer.profile.lastName || ''}`.trim()
+                                : (booking.walkInName || 'Walk-in')}
+                            </span>
+                            {!booking.customerId && (
+                              <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">WALK-IN</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {booking.customer?.email || booking.walkInPhone || ''}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <div>{booking.staff?.user?.profile?.firstName} {booking.staff?.user?.profile?.lastName}</div>
@@ -401,10 +412,24 @@ export default function Bookings() {
               </DetailRow>
 
               <DetailRow icon={<UserIcon className="w-4 h-4" />} label="Customer">
-                <div>{selected.customer?.profile?.firstName} {selected.customer?.profile?.lastName}</div>
-                <div className="text-xs text-gray-500">{selected.customer?.email}</div>
-                {selected.customer?.profile?.phone && (
-                  <div className="text-xs text-gray-500">{selected.customer.profile.phone}</div>
+                {selected.customer?.profile?.firstName ? (
+                  <>
+                    <div>{selected.customer.profile.firstName} {selected.customer.profile.lastName || ''}</div>
+                    <div className="text-xs text-gray-500">{selected.customer?.email}</div>
+                    {selected.customer?.profile?.phone && (
+                      <div className="text-xs text-gray-500">{selected.customer.profile.phone}</div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <span>{selected.walkInName || 'Walk-in customer'}</span>
+                      <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded">WALK-IN</span>
+                    </div>
+                    {selected.walkInPhone && (
+                      <div className="text-xs text-gray-500">{selected.walkInPhone}</div>
+                    )}
+                  </>
                 )}
               </DetailRow>
 

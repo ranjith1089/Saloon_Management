@@ -69,6 +69,12 @@ export class BookingController {
     return ApiResponse.success(res, 'Payment recorded', booking);
   });
 
+  static quickSale = asyncHandler(async (req: Request, res: Response) => {
+    if (isCustomer(req)) throw new ForbiddenError('Not allowed');
+    const booking = await BookingService.quickSale(req.body);
+    return ApiResponse.created(res, 'Sale recorded', booking);
+  });
+
   static getCalendar = asyncHandler(async (req: Request, res: Response) => {
     const scope = await bookingListScope(req);
     const bookings = await BookingService.getCalendar(req.query, scope);

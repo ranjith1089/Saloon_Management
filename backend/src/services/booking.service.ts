@@ -22,14 +22,20 @@ export class BookingService {
     const service = await prisma.service.findUnique({ where: { id: data.serviceId } });
     if (!service) throw new NotFoundError('Service not found');
 
+    // Either a registered customer OR a walk-in name is required.
+    const isWalkIn = !data.customerId;
+    if (isWalkIn && !data.walkInName) {
+      throw new BadRequestError('Either customerId or walkInName is required');
+    }
+
     // Validate customer & staff & branch
     const [customer, staff, branch] = await Promise.all([
-      prisma.user.findUnique({ where: { id: data.customerId } }),
+      data.customerId ? prisma.user.findUnique({ where: { id: data.customerId } }) : Promise.resolve(null),
       prisma.staff.findUnique({ where: { id: data.staffId } }),
       prisma.branch.findUnique({ where: { id: data.branchId } }),
     ]);
 
-    if (!customer) throw new NotFoundError('Customer not found');
+    if (data.customerId && !customer) throw new NotFoundError('Customer not found');
     if (!staff) throw new NotFoundError('Staff not found');
     if (!branch) throw new NotFoundError('Branch not found');
 
@@ -43,8 +49,10 @@ export class BookingService {
     const bookingDate = new Date(data.bookingDate);
 
     // Member pricing — if the customer has an active membership AND the service
-    // has a memberPrice, use it. Otherwise fall back to the regular price.
-    const activeMembership = await MembershipService.getActiveForCustomer(data.customerId);
+    // has a memberPrice, use it. Walk-ins never get member pricing.
+    const activeMembership = data.customerId
+      ? await MembershipService.getActiveForCustomer(data.customerId)
+      : null;
     const useMemberPrice =
       !!activeMembership && service.memberPrice !== null && service.memberPrice !== undefined;
     const subtotal = Number(useMemberPrice ? service.memberPrice! : service.price);
@@ -55,7 +63,7 @@ export class BookingService {
       const { coupon, discountAmount } = await CouponService.validate(
         data.couponCode,
         subtotal,
-        data.customerId
+        data.customerId ?? undefined
       );
       couponApplied = { id: coupon.id, discount: discountAmount };
     }
@@ -96,7 +104,9 @@ export class BookingService {
         return tx.booking.create({
           data: {
             bookingNumber,
-            customerId: data.customerId,
+            customerId: data.customerId || null,
+            walkInName: !data.customerId ? (data.walkInName || null) : null,
+            walkInPhone: !data.customerId ? (data.walkInPhone || null) : null,
             staffId: data.staffId,
             branchId: data.branchId,
             serviceId: data.serviceId,
@@ -116,15 +126,9 @@ export class BookingService {
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
 
-    // Notifications are best-effort — a failed notification must not roll back the booking.
-    await Promise.all([
-      NotificationService.create({
-        userId: booking.customerId,
-        title: 'Booking Confirmed',
-        message: `Your booking for ${service.name} on ${bookingDate.toDateString()} at ${data.startTime} has been created.`,
-        type: 'BOOKING_CREATED',
-        data: { bookingId: booking.id },
-      }),
+    // Notifications are best-effort — a failed notification must not roll back
+    // the booking. Skip customer notification when it's a walk-in.
+    const notifyPromises: Promise<any>[] = [
       NotificationService.create({
         userId: booking.staff.userId,
         title: 'New Booking Assigned',
@@ -132,9 +136,111 @@ export class BookingService {
         type: 'BOOKING_CREATED',
         data: { bookingId: booking.id },
       }),
-    ]).catch((err) => console.error('Notification error:', err));
+    ];
+    if (booking.customerId) {
+      notifyPromises.push(
+        NotificationService.create({
+          userId: booking.customerId,
+          title: 'Booking Confirmed',
+          message: `Your booking for ${service.name} on ${bookingDate.toDateString()} at ${data.startTime} has been created.`,
+          type: 'BOOKING_CREATED',
+          data: { bookingId: booking.id },
+        })
+      );
+    }
+    await Promise.all(notifyPromises).catch((err) => console.error('Notification error:', err));
 
     return booking;
+  }
+
+  /**
+   * One-shot walk-in / on-the-spot service sale. Skips scheduling (assumes the
+   * service already happened) and immediately creates the booking as COMPLETED
+   * + PAID with the payment/tax/commission all wired in one transaction.
+   * Body: { branchId, serviceId, staffId, amount, taxRate?, paymentMethod,
+   *         reference?, walkInName?, walkInPhone?, customerId?, notes? }
+   */
+  static async quickSale(data: any) {
+    const service = await prisma.service.findUnique({ where: { id: data.serviceId } });
+    if (!service) throw new NotFoundError('Service not found');
+    if (!data.customerId && !data.walkInName) {
+      throw new BadRequestError('Either customerId or walkInName is required');
+    }
+
+    const [staff, branch] = await Promise.all([
+      prisma.staff.findUnique({ where: { id: data.staffId } }),
+      prisma.branch.findUnique({ where: { id: data.branchId } }),
+    ]);
+    if (!staff) throw new NotFoundError('Staff not found');
+    if (!branch) throw new NotFoundError('Branch not found');
+
+    const now = new Date();
+    const startTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const endMin = now.getHours() * 60 + now.getMinutes() + service.duration;
+    const endTime = `${String(Math.floor(endMin / 60) % 24).padStart(2, '0')}:${String(endMin % 60).padStart(2, '0')}`;
+
+    const subtotal = data.amount !== undefined && data.amount !== null
+      ? Number(data.amount)
+      : Number(service.price);
+    const taxRate = data.taxRate && data.taxRate > 0 ? Number(data.taxRate) : 0;
+    const taxAmount = round2((subtotal * taxRate) / 100);
+    const totalAmount = round2(subtotal + taxAmount);
+    const bookingNumber = `BK${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+    return prisma.$transaction(async (tx) => {
+      const created = await tx.booking.create({
+        data: {
+          bookingNumber,
+          customerId: data.customerId || null,
+          walkInName: !data.customerId ? (data.walkInName || null) : null,
+          walkInPhone: !data.customerId ? (data.walkInPhone || null) : null,
+          staffId: data.staffId,
+          branchId: data.branchId,
+          serviceId: data.serviceId,
+          bookingDate: now,
+          startTime,
+          endTime,
+          status: 'COMPLETED',
+          subtotal,
+          taxAmount,
+          totalAmount,
+          paymentStatus: 'PAID',
+          paymentMethod: data.paymentMethod || null,
+          paymentRef: data.reference || null,
+          paidAt: now,
+          notes: data.notes || null,
+        },
+        include: BOOKING_INCLUDE,
+      });
+
+      // Customer stats — only when there's a registered customer.
+      if (data.customerId) {
+        await tx.customer.updateMany({
+          where: { userId: data.customerId },
+          data: {
+            totalVisits: { increment: 1 },
+            totalSpent: { increment: totalAmount },
+            loyaltyPoints: { increment: Math.floor(totalAmount / 10) },
+          },
+        });
+      }
+
+      // Staff earning idempotent create (unique on bookingId).
+      const commissionRate = Number(staff.commissionRate || 0);
+      if (commissionRate > 0) {
+        await tx.staffEarning.create({
+          data: {
+            staffId: staff.id,
+            bookingId: created.id,
+            baseAmount: totalAmount,
+            commissionRate,
+            commissionAmount: round2((totalAmount * commissionRate) / 100),
+          },
+        });
+      }
+
+      return created;
+    });
   }
 
   static async checkConflicts(
@@ -289,14 +395,17 @@ export class BookingService {
       });
 
       if (status === 'COMPLETED') {
-        await tx.customer.updateMany({
-          where: { userId: booking.customerId },
-          data: {
-            totalVisits: { increment: 1 },
-            totalSpent: { increment: booking.totalAmount },
-            loyaltyPoints: { increment: Math.floor(Number(booking.totalAmount) / 10) },
-          },
-        });
+        // Skip customer stats for walk-ins (no account to update).
+        if (booking.customerId) {
+          await tx.customer.updateMany({
+            where: { userId: booking.customerId },
+            data: {
+              totalVisits: { increment: 1 },
+              totalSpent: { increment: booking.totalAmount },
+              loyaltyPoints: { increment: Math.floor(Number(booking.totalAmount) / 10) },
+            },
+          });
+        }
 
         // Idempotent earning creation (unique on bookingId).
         const existing = await tx.staffEarning.findUnique({ where: { bookingId: id } });
@@ -320,7 +429,8 @@ export class BookingService {
     });
 
     // Best-effort notifications after the transaction commits.
-    if (status === 'COMPLETED') {
+    // Skip notifications when there's no registered customer (walk-in).
+    if (status === 'COMPLETED' && booking.customerId) {
       await NotificationService.create({
         userId: booking.customerId,
         title: 'Service Completed',
@@ -329,7 +439,7 @@ export class BookingService {
         data: { bookingId: id },
       }).catch((err) => console.error('Notification error:', err));
     }
-    if (status === 'CANCELLED') {
+    if (status === 'CANCELLED' && booking.customerId) {
       await NotificationService.create({
         userId: booking.customerId,
         title: 'Booking Cancelled',
@@ -399,14 +509,17 @@ export class BookingService {
       // Optional: flip to COMPLETED in the same transaction. Reuses the same
       // effects as updateStatus (customer stats + staff earning creation).
       if (payload.alsoComplete && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED') {
-        await tx.customer.updateMany({
-          where: { userId: booking.customerId },
-          data: {
-            totalVisits: { increment: 1 },
-            totalSpent: { increment: paid.totalAmount },
-            loyaltyPoints: { increment: Math.floor(Number(paid.totalAmount) / 10) },
-          },
-        });
+        // Skip customer stats for walk-ins (no account to update).
+        if (booking.customerId) {
+          await tx.customer.updateMany({
+            where: { userId: booking.customerId },
+            data: {
+              totalVisits: { increment: 1 },
+              totalSpent: { increment: paid.totalAmount },
+              loyaltyPoints: { increment: Math.floor(Number(paid.totalAmount) / 10) },
+            },
+          });
+        }
 
         const existing = await tx.staffEarning.findUnique({ where: { bookingId: id } });
         if (!existing) {
