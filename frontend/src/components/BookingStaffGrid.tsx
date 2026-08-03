@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Plus, Building2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Building2, User } from 'lucide-react';
 import api from '@/services/api';
 
 interface Props {
@@ -9,16 +9,16 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  PENDING: { bg: 'bg-yellow-50', border: 'border-yellow-300', text: 'text-yellow-900' },
-  CONFIRMED: { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-900' },
-  IN_PROGRESS: { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-900' },
-  COMPLETED: { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-900' },
-  CANCELLED: { bg: 'bg-red-50', border: 'border-red-300', text: 'text-red-900' },
-  NO_SHOW: { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-700' },
+  PENDING: { bg: 'bg-yellow-50', border: 'border-yellow-400', text: 'text-yellow-900' },
+  CONFIRMED: { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-900' },
+  IN_PROGRESS: { bg: 'bg-purple-50', border: 'border-purple-400', text: 'text-purple-900' },
+  COMPLETED: { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-900' },
+  CANCELLED: { bg: 'bg-red-50', border: 'border-red-400', text: 'text-red-900' },
+  NO_SHOW: { bg: 'bg-gray-50', border: 'border-gray-400', text: 'text-gray-700' },
 };
 
-const SLOT_MIN = 30; // 30-minute rows
-const ROW_HEIGHT_PX = 32; // per SLOT_MIN
+const SLOT_MIN = 30;
+const ROW_HEIGHT_PX = 40;
 
 function fmtISODate(d: Date) {
   return d.toISOString().split('T')[0];
@@ -32,12 +32,14 @@ function fmtHHMM(mins: number) {
   const m = mins % 60;
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
+function fmtHour(mins: number) {
+  const h = Math.floor(mins / 60);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:00 ${ampm}`;
+}
 function sameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
 export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: Props) {
@@ -55,8 +57,6 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
     () => (branches || []).find((b: any) => b.id === branchId) || (branches || [])[0],
     [branches, branchId]
   );
-
-  // Default to the first branch if none selected
   const effectiveBranchId = branchId || activeBranch?.id || '';
 
   const { data: staffList } = useQuery({
@@ -79,7 +79,6 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
     enabled: !!effectiveBranchId,
   });
 
-  // Build slots from the branch's opening hours.
   const openTime = activeBranch?.openTime || '09:00';
   const closeTime = activeBranch?.closeTime || '21:00';
   const dayStartMin = toMinutes(openTime);
@@ -91,7 +90,6 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
     return out;
   }, [dayStartMin, dayEndMin]);
 
-  // Index bookings by staffId → { startMin, endMin, booking }
   const byStaff = useMemo(() => {
     const map = new Map<string, Array<{ startMin: number; endMin: number; booking: any }>>();
     (bookings || []).forEach((b) => {
@@ -103,15 +101,15 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
     return map;
   }, [bookings]);
 
-  const navPrev = () => setCursor((c) => {
-    const d = new Date(c); d.setDate(d.getDate() - 1); return d;
-  });
-  const navNext = () => setCursor((c) => {
-    const d = new Date(c); d.setDate(d.getDate() + 1); return d;
-  });
+  const navPrev = () => setCursor((c) => { const d = new Date(c); d.setDate(d.getDate() - 1); return d; });
+  const navNext = () => setCursor((c) => { const d = new Date(c); d.setDate(d.getDate() + 1); return d; });
   const goToday = () => setCursor(new Date());
 
   const isToday = sameDay(cursor, new Date());
+  const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowLineTop = isToday && nowMinutes >= dayStartMin && nowMinutes <= dayEndMin
+    ? ((nowMinutes - dayStartMin) / SLOT_MIN) * ROW_HEIGHT_PX
+    : null;
 
   if (!branches || branches.length === 0) {
     return (
@@ -127,25 +125,33 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
   return (
     <div className="card p-0 overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 gap-3 flex-wrap bg-gradient-to-b from-gray-50 to-white">
+        <div className="flex items-center gap-1">
           <button onClick={navPrev} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Previous day">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={goToday}
-            className={`btn-secondary !py-1.5 !px-3 text-xs ${isToday ? 'bg-primary-50 text-primary-700 border-primary-200' : ''}`}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg border ${
+              isToday ? 'bg-primary-50 border-primary-200 text-primary-700' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
           >
             Today
           </button>
           <button onClick={navNext} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Next day">
             <ChevronRight className="w-4 h-4" />
           </button>
-          <h3 className="ml-2 font-semibold text-gray-900">
-            {cursor.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-          </h3>
+          <div className="ml-3">
+            <h3 className="font-semibold text-gray-900 leading-tight">
+              {cursor.toLocaleDateString(undefined, { weekday: 'long' })}
+            </h3>
+            <p className="text-xs text-gray-500">
+              {cursor.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span>{staff.length} staff · {bookings?.length ?? 0} booking{bookings?.length === 1 ? '' : 's'}</span>
           <select
             className="input !py-1.5 text-sm max-w-[220px]"
             value={effectiveBranchId}
@@ -160,35 +166,68 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
 
       {/* Grid */}
       {isLoading ? (
-        <div className="p-8 text-center text-sm text-gray-500">Loading…</div>
+        <div className="p-8 text-center text-sm text-gray-500">Loading day…</div>
       ) : staff.length === 0 ? (
-        <div className="p-8 text-center text-sm text-gray-500">
-          No verified staff at this branch yet.
+        <div className="p-12 text-center">
+          <User className="w-12 h-12 mx-auto text-gray-300 mb-2" />
+          <p className="text-gray-500 font-medium">No verified staff at this branch</p>
+          <p className="text-xs text-gray-400 mt-1">Verify or add staff to build the schedule grid.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
           <div
-            className="grid"
-            style={{
-              gridTemplateColumns: `60px repeat(${staff.length}, minmax(180px, 1fr))`,
-            }}
+            className="grid relative"
+            style={{ gridTemplateColumns: `72px repeat(${staff.length}, minmax(200px, 1fr))` }}
           >
             {/* Header row */}
-            <div className="border-b border-gray-200 bg-gray-50 sticky left-0 z-10" />
+            <div className="border-b-2 border-gray-200 bg-gray-50 sticky left-0 z-20" />
             {staff.map((s) => (
-              <div key={s.id} className="border-b border-l border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-700">
-                <div className="truncate">
-                  {s.user?.profile?.firstName} {s.user?.profile?.lastName}
+              <div
+                key={s.id}
+                className="border-b-2 border-l border-gray-200 bg-gray-50 px-3 py-3 flex items-center gap-2 min-w-0"
+              >
+                {s.user?.profile?.avatar ? (
+                  <img
+                    src={s.user.profile.avatar}
+                    alt=""
+                    className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    {s.user?.profile?.firstName?.[0]}{s.user?.profile?.lastName?.[0]}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold truncate">
+                    {s.user?.profile?.firstName} {s.user?.profile?.lastName}
+                  </div>
+                  <div className="text-[10px] text-gray-500 truncate">{s.designation || s.employeeCode}</div>
                 </div>
-                <div className="text-[10px] text-gray-500 truncate">{s.designation || s.employeeCode}</div>
               </div>
             ))}
 
+            {/* Now-line — only when viewing today */}
+            {nowLineTop !== null && (
+              <div
+                className="absolute left-0 right-0 pointer-events-none z-10"
+                style={{ top: `${nowLineTop + 65 /* header row height */}px` }}
+              >
+                <div className="flex items-center">
+                  <span className="ml-16 text-[9px] font-bold text-red-500 bg-white px-1">
+                    {fmtHHMM(nowMinutes)}
+                  </span>
+                  <div className="flex-1 h-[2px] bg-red-500" />
+                </div>
+              </div>
+            )}
+
             {/* Time rows */}
-            {slotStarts.map((slotMin) => (
+            {slotStarts.map((slotMin, idx) => (
               <RowTime
                 key={slotMin}
                 slotMin={slotMin}
+                slotIndex={idx}
                 staff={staff}
                 byStaff={byStaff}
                 dateStr={dateStr}
@@ -202,13 +241,18 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
       )}
 
       {/* Legend */}
-      <div className="p-3 border-t border-gray-100 flex items-center gap-3 flex-wrap text-[11px]">
-        <span className="text-gray-500">Status:</span>
+      <div className="p-3 border-t border-gray-100 flex items-center gap-3 flex-wrap text-[11px] bg-gray-50/50">
+        <span className="text-gray-500 font-medium">Status:</span>
         {Object.entries(STATUS_COLORS).map(([key, c]) => (
-          <span key={key} className={`px-1.5 py-0.5 rounded border ${c.bg} ${c.border} ${c.text}`}>
+          <span key={key} className={`px-2 py-0.5 rounded border-l-2 ${c.bg} ${c.border} ${c.text}`}>
             {key.replace('_', ' ')}
           </span>
         ))}
+        {isToday && (
+          <span className="ml-auto inline-flex items-center gap-1 text-red-600">
+            <div className="w-2 h-[2px] bg-red-500" /> now
+          </span>
+        )}
       </div>
     </div>
   );
@@ -216,6 +260,7 @@ export default function BookingStaffGrid({ onSelectBooking, onCreateBooking }: P
 
 function RowTime({
   slotMin,
+  slotIndex,
   staff,
   byStaff,
   dateStr,
@@ -224,6 +269,7 @@ function RowTime({
   onCreateBooking,
 }: {
   slotMin: number;
+  slotIndex: number;
   staff: any[];
   byStaff: Map<string, Array<{ startMin: number; endMin: number; booking: any }>>;
   dateStr: string;
@@ -231,22 +277,25 @@ function RowTime({
   onSelectBooking?: (b: any) => void;
   onCreateBooking?: (p: { staffId: string; startTime: string; date: string; branchId: string }) => void;
 }) {
-  const label = fmtHHMM(slotMin);
+  const isHourStart = slotMin % 60 === 0;
+  const zebra = slotIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50/40';
+
   return (
     <>
+      {/* Time label — sticky column */}
       <div
-        className="border-b border-gray-100 px-2 py-1 text-[11px] font-mono text-gray-500 sticky left-0 bg-white z-10"
+        className={`px-2 text-[11px] font-mono sticky left-0 z-10 flex items-start justify-end pr-2 pt-1 ${
+          isHourStart ? 'text-gray-700 font-semibold border-t border-gray-200 bg-white' : 'text-gray-300 border-t border-gray-50 bg-white'
+        }`}
         style={{ height: ROW_HEIGHT_PX }}
       >
-        {slotMin % 60 === 0 ? label : ''}
+        {isHourStart && fmtHour(slotMin)}
       </div>
       {staff.map((s) => {
         const items = byStaff.get(s.id) || [];
-        // A booking "starts" at this slot iff startMin equals this slotMin (or the
-        // booking started before the day-window and we're at the first slot).
         const startsHere = items.find((it) => it.startMin === slotMin);
-        // Skip cells that are inside a running booking (they'll be covered by the span).
         const insideRunning = items.some((it) => it.startMin < slotMin && it.endMin > slotMin);
+        const rowBorder = isHourStart ? 'border-t border-gray-200' : 'border-t border-gray-100';
 
         if (startsHere) {
           const durationMin = startsHere.endMin - startsHere.startMin;
@@ -257,25 +306,29 @@ function RowTime({
             <button
               key={s.id}
               onClick={() => onSelectBooking?.(b)}
-              className={`border-b border-l border-gray-100 relative overflow-hidden text-left ${c.bg} ${c.border} border-l-4 hover:brightness-95`}
-              style={{ height: ROW_HEIGHT_PX * rows, marginBottom: -1 * (rows - 1) * ROW_HEIGHT_PX + (rows - 1) }}
+              className={`${rowBorder} border-l border-gray-100 relative overflow-hidden text-left ${c.bg} border-l-4 ${c.border} hover:brightness-95 shadow-sm rounded-sm m-0.5`}
+              style={{
+                height: ROW_HEIGHT_PX * rows - 4,
+                marginBottom: -1 * (rows - 1) * ROW_HEIGHT_PX + (rows - 1) * 1,
+              }}
               title={`${b.startTime}–${b.endTime} · ${b.service?.name} · ${b.customer?.profile?.firstName || ''} ${b.customer?.profile?.lastName || ''}`.trim()}
             >
-              <div className={`px-2 py-1 text-[11px] leading-tight ${c.text}`}>
-                <div className="font-mono font-semibold">{b.startTime}</div>
-                <div className="truncate font-medium">{b.service?.name}</div>
-                <div className="truncate opacity-80">
+              <div className={`px-2 py-1.5 text-[11px] leading-tight ${c.text}`}>
+                <div className="flex items-center justify-between gap-1">
+                  <span className="font-mono font-semibold">{b.startTime}</span>
+                  {b.paymentStatus === 'PAID' && (
+                    <span className="text-[9px] font-bold opacity-70">✓ PAID</span>
+                  )}
+                </div>
+                <div className="truncate font-semibold">{b.service?.name}</div>
+                <div className="truncate opacity-75">
                   {b.customer?.profile?.firstName || ''} {b.customer?.profile?.lastName || ''}
                 </div>
-                {b.paymentStatus === 'PAID' && (
-                  <div className="text-[10px] mt-0.5 opacity-70">✓ PAID</div>
-                )}
               </div>
             </button>
           );
         }
         if (insideRunning) {
-          // Return a placeholder so the grid layout stays aligned.
           return <div key={s.id} className="border-l border-transparent" style={{ height: 0 }} />;
         }
         return (
@@ -289,11 +342,13 @@ function RowTime({
                 branchId,
               })
             }
-            className="border-b border-l border-gray-100 hover:bg-primary-50 group flex items-center justify-center"
+            className={`${zebra} ${rowBorder} border-l border-gray-100 hover:bg-primary-50 group flex items-center justify-center transition-colors`}
             style={{ height: ROW_HEIGHT_PX }}
             title={`Book ${s.user?.profile?.firstName || 'staff'} at ${fmtHHMM(slotMin)}`}
           >
-            <Plus className="w-3.5 h-3.5 text-gray-300 group-hover:text-primary-500 opacity-0 group-hover:opacity-100" />
+            <span className="opacity-0 group-hover:opacity-100 text-primary-500 text-[10px] font-medium inline-flex items-center gap-1">
+              <Plus className="w-3 h-3" /> book
+            </span>
           </button>
         );
       })}
