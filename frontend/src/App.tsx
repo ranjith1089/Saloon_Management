@@ -22,6 +22,10 @@ import Inquiries from '@/pages/Inquiries';
 import Reports from '@/pages/Reports';
 import Notifications from '@/pages/Notifications';
 import Settings from '@/pages/Settings';
+import MyBookings from '@/pages/my/MyBookings';
+import MyProfile from '@/pages/my/MyProfile';
+import MyMembership from '@/pages/my/MyMembership';
+import MyHistory from '@/pages/my/MyHistory';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
 const STAFF_UP = ['ADMIN', 'MANAGER', 'STAFF'] as const;
@@ -53,6 +57,12 @@ export default function App() {
         <Route path="/reports"       element={<RoleGuard allow={[...ADMIN_MGR]}><Reports /></RoleGuard>} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
+
+        {/* Customer portal — dedicated /my/* space */}
+        <Route path="/my/bookings"    element={<RoleGuard allow={['CUSTOMER']}><MyBookings /></RoleGuard>} />
+        <Route path="/my/profile"     element={<RoleGuard allow={['CUSTOMER']}><MyProfile /></RoleGuard>} />
+        <Route path="/my/membership"  element={<RoleGuard allow={['CUSTOMER']}><MyMembership /></RoleGuard>} />
+        <Route path="/my/history"     element={<RoleGuard allow={['CUSTOMER']}><MyHistory /></RoleGuard>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
