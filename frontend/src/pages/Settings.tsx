@@ -810,6 +810,9 @@ function HolidaysTab() {
 function PaymentsTab() {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editIcon, setEditIcon] = useState('');
   const { register, handleSubmit, reset } = useForm({
     defaultValues: { name: '', type: 'CASH', gateway: 'NONE', icon: '💵', enabled: true, testMode: true },
   });
@@ -858,9 +861,15 @@ function PaymentsTab() {
       { name: 'Card', type: 'CARD', gateway: 'RAZORPAY', icon: '💳', enabled: true, testMode: true },
       { name: 'Bank Transfer', type: 'BANK_TRANSFER', gateway: 'NONE', icon: '🏦', enabled: false, testMode: false },
     ];
-    for (const m of defaults) await settingsApi.createPaymentMethod(m);
+    const existingNames = new Set(methods.map((m: any) => m.name));
+    const toAdd = defaults.filter((d) => !existingNames.has(d.name));
+    if (toAdd.length === 0) {
+      toast('All defaults are already present.', { icon: 'ℹ️' });
+      return;
+    }
+    for (const m of toAdd) await settingsApi.createPaymentMethod(m);
     invalidate();
-    toast.success('Added 4 default methods');
+    toast.success(`Added ${toAdd.length} method${toAdd.length === 1 ? '' : 's'}`);
   };
 
   return (
@@ -872,9 +881,9 @@ function PaymentsTab() {
             <p className="text-sm text-gray-500 mt-1">How customers can pay for services</p>
           </div>
           <div className="flex gap-2">
-            {methods.length === 0 && (
-              <button onClick={addDefaults} className="btn-secondary text-sm">Add Defaults</button>
-            )}
+            <button onClick={addDefaults} className="btn-secondary text-sm" title="Adds the 4 default methods (won't overwrite existing rows with the same name)">
+              Add Defaults
+            </button>
             <button onClick={() => setAdding(!adding)} className="btn-primary text-sm">
               <Plus className="w-4 h-4 mr-1" /> Add Method
             </button>
@@ -897,7 +906,7 @@ function PaymentsTab() {
                   <option value="BANK_TRANSFER">Bank Transfer</option>
                 </select>
               </div>
-              <div><label className="label">Icon (emoji)</label><input className="input text-center text-2xl" maxLength={2} {...register('icon')} /></div>
+              <div><label className="label">Icon (emoji)</label><input className="input text-center text-2xl" maxLength={8} {...register('icon')} /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -943,23 +952,71 @@ function PaymentsTab() {
                 <button onClick={() => move(m.id, 'down')} disabled={i === methods.length - 1} className="disabled:opacity-30 text-xs">▼</button>
               </div>
 
-              <div className="text-3xl">{m.icon}</div>
-
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold">{m.name}</p>
-                  <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{m.type}</span>
-                  {m.gateway !== 'NONE' && (
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">via {m.gateway}</span>
-                  )}
-                  {m.testMode && m.gateway !== 'NONE' && (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">TEST</span>
-                  )}
+              {editingId === m.id ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <input
+                    className="input text-center text-2xl w-16"
+                    value={editIcon}
+                    onChange={(e) => setEditIcon(e.target.value)}
+                    placeholder="🏷"
+                  />
+                  <input
+                    className="input flex-1"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Method name"
+                  />
+                  <button
+                    onClick={() => {
+                      updateMutation.mutate(
+                        { id: m.id, data: { name: editName, icon: editIcon } },
+                        {
+                          onSuccess: () => {
+                            setEditingId(null);
+                            toast.success('Updated');
+                          },
+                        }
+                      );
+                    }}
+                    className="btn-primary text-xs !py-1.5 !px-3"
+                  >
+                    Save
+                  </button>
+                  <button onClick={() => setEditingId(null)} className="btn-secondary text-xs !py-1.5 !px-3">
+                    Cancel
+                  </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {m.enabled ? '✓ Available at checkout' : '✗ Hidden from checkout'}
-                </p>
-              </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setEditingId(m.id);
+                      setEditName(m.name);
+                      setEditIcon(m.icon || '');
+                    }}
+                    className="text-3xl hover:bg-gray-100 rounded px-2"
+                    title="Click to edit icon and name"
+                  >
+                    {m.icon || '❓'}
+                  </button>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{m.name}</p>
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{m.type}</span>
+                      {m.gateway !== 'NONE' && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">via {m.gateway}</span>
+                      )}
+                      {m.testMode && m.gateway !== 'NONE' && (
+                        <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">TEST</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {m.enabled ? '✓ Available at checkout' : '✗ Hidden from checkout'}
+                    </p>
+                  </div>
+                </>
+              )}
 
               <button
                 onClick={() => toggleEnabled(m.id, m.enabled)}
