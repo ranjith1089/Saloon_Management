@@ -64,6 +64,46 @@ function CustomerHome({ data, user }: { data: any; user: any }) {
         </div>
       )}
 
+      {/* Loyalty streak — progress toward the next reward */}
+      {(() => {
+        const REWARD_THRESHOLD = 500;
+        const pts = m.loyaltyPoints ?? 0;
+        const reached = pts >= REWARD_THRESHOLD;
+        const pct = Math.min(100, Math.round((pts / REWARD_THRESHOLD) * 100));
+        return (
+          <div className={`card border-2 ${reached ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-white' : 'border-primary-200 bg-gradient-to-br from-primary-50/50 to-white'}`}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                reached ? 'bg-yellow-400 text-white' : 'bg-primary-100 text-primary-700'
+              }`}>
+                <Award className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold">
+                  {reached ? '🎁 Free service unlocked!' : `${pts} / ${REWARD_THRESHOLD} points`}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {reached
+                    ? 'Mention this at your next visit to redeem your free service.'
+                    : `${REWARD_THRESHOLD - pts} more points to earn a free service reward`}
+                </p>
+              </div>
+            </div>
+            <div className="w-full h-2 bg-white rounded-full overflow-hidden border border-gray-100">
+              <div
+                className={`h-full ${reached ? 'bg-yellow-400' : 'bg-primary-500'} transition-all`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="mt-3 text-xs">
+              <Link to="/my/referrals" className="text-primary-600 hover:underline">
+                💡 Earn 100 pts by referring a friend →
+              </Link>
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="card p-0 overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
           <h2 className="font-semibold">Upcoming Appointments</h2>
