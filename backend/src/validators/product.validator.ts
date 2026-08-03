@@ -61,7 +61,8 @@ export const createProductSaleSchema = z.object({
       )
       .min(1, 'At least one item is required'),
     discountAmount: money.optional().default(0),
-    taxAmount: money.optional().default(0),
+    taxAmount: money.optional().default(0),   // legacy — ignored when taxRate is set
+    taxRate: z.coerce.number().min(0).max(100).optional(),
     paymentMethod: z.string().max(80).optional().nullable(),
     notes: z.string().max(500).optional().nullable(),
   }),

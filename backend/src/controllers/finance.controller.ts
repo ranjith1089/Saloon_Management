@@ -29,6 +29,11 @@ export class TaxController {
     await TaxService.delete(req.params.id);
     return ApiResponse.success(res, 'Tax deleted');
   });
+
+  static getDefault = asyncHandler(async (_req: Request, res: Response) => {
+    const t = await TaxService.getDefault();
+    return ApiResponse.success(res, 'Default tax', t);
+  });
 }
 
 export class EarningController {

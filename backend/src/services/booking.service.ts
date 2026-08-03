@@ -5,6 +5,10 @@ import { NotificationService } from './notification.service';
 import { CouponService } from './coupon.service';
 import { MembershipService } from './membership.service';
 
+function round2(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
 const BOOKING_INCLUDE = {
   customer: { include: { profile: true } },
   staff: { include: { user: { include: { profile: true } } } },
@@ -345,7 +349,13 @@ export class BookingService {
 
   static async collectPayment(
     id: string,
-    payload: { method: string; reference?: string; amount?: number; alsoComplete?: boolean }
+    payload: {
+      method: string;
+      reference?: string;
+      amount?: number;
+      taxRate?: number;      // e.g. 18 for 18% GST, 0 or undefined for no tax
+      alsoComplete?: boolean;
+    }
   ) {
     const booking = await this.findById(id);
 
@@ -362,12 +372,15 @@ export class BookingService {
     // Do the payment flip (+ optional completion) atomically so a failure
     // between the two writes can't leave the booking half-updated.
     return prisma.$transaction(async (tx) => {
-      // If the caller passed a different amount (tip, discount at counter),
-      // update totalAmount so reports reflect what actually came in.
-      const totalAmount =
+      // Pre-tax subtotal — either the caller's amount (tip / adjustment) or
+      // the original booking total. Tax is always computed by the server.
+      const subtotal =
         payload.amount !== undefined && payload.amount !== null && payload.amount >= 0
           ? payload.amount
           : Number(booking.totalAmount);
+      const taxRate = payload.taxRate && payload.taxRate > 0 ? payload.taxRate : 0;
+      const taxAmount = round2((subtotal * taxRate) / 100);
+      const totalAmount = round2(subtotal + taxAmount);
 
       const paid = await tx.booking.update({
         where: { id },
@@ -376,6 +389,8 @@ export class BookingService {
           paymentMethod: payload.method,
           paymentRef: payload.reference || null,
           paidAt: new Date(),
+          subtotal,
+          taxAmount,
           totalAmount,
         },
         include: BOOKING_INCLUDE,

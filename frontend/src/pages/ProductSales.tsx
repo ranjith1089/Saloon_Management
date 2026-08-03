@@ -8,6 +8,7 @@ import {
 import api from '@/services/api';
 import Modal from '@/components/Modal';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
 interface CartLine {
   productId: string;
@@ -20,6 +21,7 @@ interface CartLine {
 export default function ProductSales() {
   const queryClient = useQueryClient();
   const { methods: paymentMethods } = usePaymentMethods();
+  const { rate: gstRate, name: taxName } = useDefaultTaxRate();
   const [branchId, setBranchId] = useState<string>('');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -27,6 +29,7 @@ export default function ProductSales() {
   const [staffId, setStaffId] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [applyGst, setApplyGst] = useState(false);
   const [notes, setNotes] = useState('');
   const [detailId, setDetailId] = useState<string | null>(null);
 
@@ -133,11 +136,14 @@ export default function ProductSales() {
     setCustomerId('');
     setStaffId('');
     setDiscountAmount(0);
+    setApplyGst(false);
     setNotes('');
   };
 
   const subtotal = useMemo(() => cart.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0), [cart]);
-  const total = Math.max(0, subtotal - discountAmount);
+  const taxableBase = Math.max(0, subtotal - discountAmount);
+  const taxAmount = applyGst ? Math.round((taxableBase * gstRate) / 100 * 100) / 100 : 0;
+  const total = Math.max(0, taxableBase + taxAmount);
 
   const checkout = useMutation({
     mutationFn: async () => {
@@ -147,6 +153,7 @@ export default function ProductSales() {
         staffId: staffId || undefined,
         items: cart.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         discountAmount,
+        taxRate: applyGst ? gstRate : 0,
         paymentMethod,
         notes: notes || undefined,
       };
@@ -362,6 +369,29 @@ export default function ProductSales() {
                       </div>
                     </div>
                     <div>
+                      <label className="label text-xs">Tax</label>
+                      <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200 w-fit">
+                        <button
+                          type="button"
+                          onClick={() => setApplyGst(false)}
+                          className={`px-3 py-1 text-xs font-medium rounded-md ${
+                            !applyGst ? 'bg-primary-50 text-primary-700' : 'text-gray-600'
+                          }`}
+                        >
+                          Non GST
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setApplyGst(true)}
+                          className={`px-3 py-1 text-xs font-medium rounded-md ${
+                            applyGst ? 'bg-primary-50 text-primary-700' : 'text-gray-600'
+                          }`}
+                        >
+                          {taxName} {gstRate}%
+                        </button>
+                      </div>
+                    </div>
+                    <div>
                       <label className="label text-xs">Notes</label>
                       <input className="input !py-1.5 text-sm" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional" />
                     </div>
@@ -371,6 +401,12 @@ export default function ProductSales() {
                     <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>₹{subtotal.toLocaleString()}</span></div>
                     {discountAmount > 0 && (
                       <div className="flex justify-between text-green-700"><span>Discount</span><span>−₹{discountAmount.toLocaleString()}</span></div>
+                    )}
+                    {applyGst && taxAmount > 0 && (
+                      <div className="flex justify-between text-gray-700">
+                        <span>{taxName} ({gstRate}%)</span>
+                        <span>+₹{taxAmount.toLocaleString()}</span>
+                      </div>
                     )}
                     <div className="flex justify-between pt-2 border-t border-gray-200 text-base font-semibold">
                       <span>Total</span>
@@ -507,6 +543,9 @@ function SaleDetailModal({ id, onClose }: { id: string | null; onClose: () => vo
             <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>₹{Number(data.subtotal).toLocaleString()}</span></div>
             {Number(data.discountAmount) > 0 && (
               <div className="flex justify-between text-green-700"><span>Discount</span><span>−₹{Number(data.discountAmount).toLocaleString()}</span></div>
+            )}
+            {Number(data.taxAmount) > 0 && (
+              <div className="flex justify-between text-gray-700"><span>Tax</span><span>+₹{Number(data.taxAmount).toLocaleString()}</span></div>
             )}
             <div className="flex justify-between pt-2 border-t border-gray-200 font-semibold">
               <span>Total</span>

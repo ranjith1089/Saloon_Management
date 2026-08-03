@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Loader2, CreditCard } from 'lucide-react';
+import { Loader2, CreditCard, Receipt } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
+import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
 
 interface Props {
   open: boolean;
@@ -16,6 +17,11 @@ interface Props {
 export default function CollectPaymentModal({ open, onClose, booking }: Props) {
   const queryClient = useQueryClient();
   const { methods: availableMethods, configured: methodsConfigured } = usePaymentMethods();
+  const { rate: gstRate, name: taxName } = useDefaultTaxRate();
+
+  // Non GST vs GST toggle — stored outside react-hook-form because it's not
+  // a plain input; simpler to manage as local state.
+  const [applyGst, setApplyGst] = useState(false);
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     defaultValues: {
@@ -34,9 +40,8 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
         reference: '',
         alsoComplete: booking.status !== 'COMPLETED',
       });
+      setApplyGst(false);
     }
-    // Intentionally omitting availableMethods to avoid resetting form on
-    // background refetch — set only when modal opens with a booking.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, booking, reset]);
 
@@ -46,6 +51,7 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
         method: data.method,
         reference: data.reference || undefined,
         amount: Number(data.amount),
+        taxRate: applyGst ? gstRate : 0,
         alsoComplete: !!data.alsoComplete,
       }),
     onSuccess: () => {
@@ -60,6 +66,8 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
   const amount = Number(watch('amount') || 0);
   const originalTotal = Number(booking?.totalAmount || 0);
   const diff = amount - originalTotal;
+  const taxAmount = applyGst ? Math.round((amount * gstRate) / 100 * 100) / 100 : 0;
+  const finalTotal = Math.round((amount + taxAmount) * 100) / 100;
 
   if (!booking) return null;
 
@@ -79,7 +87,7 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
             className="btn-primary"
           >
             {collect.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-              <><CreditCard className="w-4 h-4 mr-1" /> Mark as Paid</>
+              <><CreditCard className="w-4 h-4 mr-1" /> Collect ₹{finalTotal.toLocaleString()}</>
             )}
           </button>
         </>
@@ -122,6 +130,31 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
           )}
         </div>
 
+        {/* GST toggle */}
+        <div>
+          <label className="label flex items-center gap-1"><Receipt className="w-3.5 h-3.5" /> Tax</label>
+          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setApplyGst(false)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                !applyGst ? 'bg-white shadow-sm text-primary-700' : 'text-gray-600'
+              }`}
+            >
+              Non GST
+            </button>
+            <button
+              type="button"
+              onClick={() => setApplyGst(true)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                applyGst ? 'bg-white shadow-sm text-primary-700' : 'text-gray-600'
+              }`}
+            >
+              {taxName} {gstRate}%
+            </button>
+          </div>
+        </div>
+
         <div>
           <label className="label">Payment Method *</label>
           <select className="input" {...register('method', { required: true })}>
@@ -139,6 +172,24 @@ export default function CollectPaymentModal({ open, onClose, booking }: Props) {
         <div>
           <label className="label">Reference / Transaction ID</label>
           <input className="input font-mono" {...register('reference')} placeholder="Optional — UPI ref, card slip #, etc." />
+        </div>
+
+        {/* Live summary — matches what the backend will compute */}
+        <div className="bg-primary-50 border border-primary-100 rounded-lg p-3 space-y-1 text-sm">
+          <div className="flex justify-between text-gray-700">
+            <span>Amount</span>
+            <span>₹{amount.toLocaleString()}</span>
+          </div>
+          {applyGst && (
+            <div className="flex justify-between text-gray-700">
+              <span>{taxName} ({gstRate}%)</span>
+              <span>+₹{taxAmount.toLocaleString()}</span>
+            </div>
+          )}
+          <div className="flex justify-between pt-1 border-t border-primary-200 font-semibold">
+            <span>Total to collect</span>
+            <span className="text-primary-700">₹{finalTotal.toLocaleString()}</span>
+          </div>
         </div>
 
         {booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED' && (

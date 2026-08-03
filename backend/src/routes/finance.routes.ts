@@ -9,6 +9,7 @@ router.use(authenticate);
 // Tax routes
 router.post('/taxes', authorize('ADMIN'), TaxController.create);
 router.get('/taxes', TaxController.findAll);
+router.get('/taxes/default', TaxController.getDefault);
 router.get('/taxes/:id', TaxController.findById);
 router.patch('/taxes/:id', authorize('ADMIN'), TaxController.update);
 router.delete('/taxes/:id', authorize('ADMIN'), TaxController.delete);

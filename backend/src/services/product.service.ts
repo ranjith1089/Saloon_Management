@@ -197,8 +197,12 @@ export class ProductSaleService {
         }
 
         const discountAmount = Number(data.discountAmount || 0);
-        const taxAmount = Number(data.taxAmount || 0);
-        const totalAmount = Math.max(0, subtotal - discountAmount + taxAmount);
+        // Tax is computed on (subtotal - discount) using an optional taxRate
+        // (e.g. 18 for 18% GST). Server never trusts a client-supplied taxAmount.
+        const taxRate = Number(data.taxRate || 0);
+        const taxableBase = Math.max(0, subtotal - discountAmount);
+        const taxAmount = taxRate > 0 ? Math.round((taxableBase * taxRate) / 100 * 100) / 100 : 0;
+        const totalAmount = Math.max(0, taxableBase + taxAmount);
 
         // Decrement stock for each item.
         for (const item of decrementedItems) {
