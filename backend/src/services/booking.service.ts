@@ -343,6 +343,83 @@ export class BookingService {
     return prisma.booking.delete({ where: { id } });
   }
 
+  static async collectPayment(
+    id: string,
+    payload: { method: string; reference?: string; amount?: number; alsoComplete?: boolean }
+  ) {
+    const booking = await this.findById(id);
+
+    if (booking.paymentStatus === 'PAID') {
+      throw new BadRequestError('Booking is already paid');
+    }
+    if (booking.paymentStatus === 'REFUNDED') {
+      throw new BadRequestError('Booking has been refunded');
+    }
+    if (booking.status === 'CANCELLED') {
+      throw new BadRequestError('Cannot collect payment for a cancelled booking');
+    }
+
+    // Do the payment flip (+ optional completion) atomically so a failure
+    // between the two writes can't leave the booking half-updated.
+    return prisma.$transaction(async (tx) => {
+      // If the caller passed a different amount (tip, discount at counter),
+      // update totalAmount so reports reflect what actually came in.
+      const totalAmount =
+        payload.amount !== undefined && payload.amount !== null && payload.amount >= 0
+          ? payload.amount
+          : Number(booking.totalAmount);
+
+      const paid = await tx.booking.update({
+        where: { id },
+        data: {
+          paymentStatus: 'PAID',
+          paymentMethod: payload.method,
+          paymentRef: payload.reference || null,
+          paidAt: new Date(),
+          totalAmount,
+        },
+        include: BOOKING_INCLUDE,
+      });
+
+      // Optional: flip to COMPLETED in the same transaction. Reuses the same
+      // effects as updateStatus (customer stats + staff earning creation).
+      if (payload.alsoComplete && booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED') {
+        await tx.customer.updateMany({
+          where: { userId: booking.customerId },
+          data: {
+            totalVisits: { increment: 1 },
+            totalSpent: { increment: paid.totalAmount },
+            loyaltyPoints: { increment: Math.floor(Number(paid.totalAmount) / 10) },
+          },
+        });
+
+        const existing = await tx.staffEarning.findUnique({ where: { bookingId: id } });
+        if (!existing) {
+          const commissionRate = Number(paid.staff.commissionRate || 0);
+          const baseAmount = Number(paid.totalAmount);
+          const commissionAmount = (baseAmount * commissionRate) / 100;
+          await tx.staffEarning.create({
+            data: {
+              staffId: paid.staffId,
+              bookingId: id,
+              baseAmount,
+              commissionRate,
+              commissionAmount,
+            },
+          });
+        }
+
+        return tx.booking.update({
+          where: { id },
+          data: { status: 'COMPLETED' },
+          include: BOOKING_INCLUDE,
+        });
+      }
+
+      return paid;
+    });
+  }
+
   static async getCalendar(query: any) {
     const startDate = new Date(query.startDate);
     const endDate = new Date(query.endDate);

@@ -35,6 +35,11 @@ export class BookingController {
     return ApiResponse.success(res, 'Booking deleted');
   });
 
+  static collectPayment = asyncHandler(async (req: Request, res: Response) => {
+    const booking = await BookingService.collectPayment(req.params.id, req.body);
+    return ApiResponse.success(res, 'Payment recorded', booking);
+  });
+
   static getCalendar = asyncHandler(async (req: Request, res: Response) => {
     const bookings = await BookingService.getCalendar(req.query);
     return ApiResponse.success(res, 'Calendar retrieved', bookings);

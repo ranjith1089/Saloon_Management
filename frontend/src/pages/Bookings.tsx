@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Calendar as CalendarIcon, MoreVertical, List, LayoutGrid, X } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, MoreVertical, List, LayoutGrid, X, CreditCard, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
 import NewBookingModal from '@/components/NewBookingModal';
 import BookingCalendar from '@/components/BookingCalendar';
+import CollectPaymentModal from '@/components/CollectPaymentModal';
 
 type Mode = 'table' | 'calendar';
 
@@ -14,6 +15,7 @@ export default function Bookings() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mode, setMode] = useState<Mode>('table');
   const [selected, setSelected] = useState<any | null>(null);
+  const [payingFor, setPayingFor] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['bookings'],
@@ -101,14 +103,15 @@ export default function Bookings() {
                   <th className="text-left px-4 py-3 font-medium text-gray-700">Date/Time</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-700">Amount</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-700">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-700">Payment</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-700"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {isLoading ? (
-                  <tr><td colSpan={8} className="text-center py-8 text-gray-500">Loading...</td></tr>
+                  <tr><td colSpan={9} className="text-center py-8 text-gray-500">Loading...</td></tr>
                 ) : data?.data?.length === 0 ? (
-                  <tr><td colSpan={8} className="text-center py-8 text-gray-500">
+                  <tr><td colSpan={9} className="text-center py-8 text-gray-500">
                     <CalendarIcon className="w-12 h-12 mx-auto text-gray-300 mb-2" />
                     <p>No bookings found</p>
                     <button onClick={() => setModalOpen(true)} className="btn-primary mt-4">
@@ -134,6 +137,23 @@ export default function Bookings() {
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[booking.status]}`}>
                           {booking.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {booking.paymentStatus === 'PAID' ? (
+                          <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium" title={booking.paymentMethod || ''}>
+                            <Check className="w-3 h-3" />
+                            {booking.paymentMethod || 'PAID'}
+                          </span>
+                        ) : booking.status !== 'CANCELLED' ? (
+                          <button
+                            onClick={() => setPayingFor(booking)}
+                            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 font-medium"
+                          >
+                            <CreditCard className="w-3 h-3" /> Collect
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 relative">
                         {nextStatuses[booking.status]?.length > 0 && (
@@ -214,32 +234,62 @@ export default function Bookings() {
                   ₹{Number(selected.totalAmount).toLocaleString()}
                 </span>
               </Row>
+              <Row label="Payment">
+                {selected.paymentStatus === 'PAID' ? (
+                  <div className="space-y-0.5">
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 font-medium">
+                      <Check className="w-3 h-3" /> PAID · {selected.paymentMethod || '—'}
+                    </span>
+                    {selected.paymentRef && (
+                      <div className="text-xs text-gray-500 font-mono">ref: {selected.paymentRef}</div>
+                    )}
+                    {selected.paidAt && (
+                      <div className="text-xs text-gray-500">{new Date(selected.paidAt).toLocaleString()}</div>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                    {selected.paymentStatus}
+                  </span>
+                )}
+              </Row>
               {selected.notes && <Row label="Notes">{selected.notes}</Row>}
             </div>
-            {nextStatuses[selected.status]?.length > 0 && (
-              <div className="border-t border-gray-100 p-4 flex flex-wrap gap-2">
-                {nextStatuses[selected.status].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => {
-                      let reason;
-                      if (s === 'CANCELLED') {
-                        reason = prompt('Cancellation reason?') || 'Cancelled by admin';
-                      }
-                      statusMutation.mutate({ id: selected.id, status: s, reason });
-                    }}
-                    className="btn-secondary text-xs"
-                  >
-                    Mark as {s.replace('_', ' ')}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="border-t border-gray-100 p-4 flex flex-wrap gap-2">
+              {selected.paymentStatus !== 'PAID' && selected.status !== 'CANCELLED' && (
+                <button
+                  onClick={() => setPayingFor(selected)}
+                  className="btn-primary text-xs"
+                >
+                  <CreditCard className="w-3.5 h-3.5 mr-1" /> Collect Payment
+                </button>
+              )}
+              {nextStatuses[selected.status]?.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => {
+                    let reason;
+                    if (s === 'CANCELLED') {
+                      reason = prompt('Cancellation reason?') || 'Cancelled by admin';
+                    }
+                    statusMutation.mutate({ id: selected.id, status: s, reason });
+                  }}
+                  className="btn-secondary text-xs"
+                >
+                  Mark as {s.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       <NewBookingModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <CollectPaymentModal
+        open={!!payingFor}
+        onClose={() => setPayingFor(null)}
+        booking={payingFor}
+      />
     </div>
   );
 }

@@ -388,6 +388,9 @@ model Booking {
   discountAmount Decimal      @default(0) @db.Decimal(10, 2)
   totalAmount   Decimal       @db.Decimal(10, 2)
   paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String?
+  paymentRef    String?
+  paidAt        DateTime?
   couponId      String?
   notes         String?
   cancelReason  String?
