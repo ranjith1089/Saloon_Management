@@ -156,17 +156,17 @@ export default function Sales() {
     setCart((c) => {
       const existing = c.find((l) => l.kind === 'PRODUCT' && l.productId === p.id) as ProductLine | undefined;
       if (existing) {
-        if (existing.quantity >= (p.stockQuantity ?? 0)) {
+        if (existing.quantity >= (p.stock ?? 0)) {
           toast.error('Out of stock');
           return c;
         }
         return c.map((l) => l.kind === 'PRODUCT' && l.productId === p.id ? { ...l, quantity: l.quantity + 1 } : l);
       }
-      if ((p.stockQuantity ?? 0) <= 0) { toast.error('Out of stock'); return c; }
+      if ((p.stock ?? 0) <= 0) { toast.error('Out of stock'); return c; }
       return [...c, {
         kind: 'PRODUCT', productId: p.id, name: p.name,
-        unitPrice: Number(p.sellPrice ?? p.price ?? 0),
-        stock: p.stockQuantity ?? 0, quantity: 1, image: p.image,
+        unitPrice: Number(p.sellPrice ?? 0),
+        stock: p.stock ?? 0, quantity: 1, image: p.image,
       }];
     });
   };
@@ -419,7 +419,7 @@ export default function Sales() {
                   <button
                     key={p.id}
                     onClick={() => addProduct(p)}
-                    disabled={(p.stockQuantity ?? 0) <= 0}
+                    disabled={(p.stock ?? 0) <= 0}
                     className="border border-gray-200 rounded-xl p-3 hover:border-primary-500 hover:bg-primary-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-left"
                   >
                     <div className="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-2 overflow-hidden">
@@ -427,8 +427,8 @@ export default function Sales() {
                     </div>
                     <div className="text-sm font-medium truncate">{p.name}</div>
                     <div className="flex items-center justify-between mt-1">
-                      <span className="text-sm font-bold text-primary-700">{money(p.sellPrice ?? p.price)}</span>
-                      <span className={`text-xs ${p.stockQuantity <= 0 ? 'text-red-600' : p.stockQuantity < 5 ? 'text-amber-600' : 'text-gray-500'}`}>×{p.stockQuantity ?? 0}</span>
+                      <span className="text-sm font-bold text-primary-700">{money(p.sellPrice)}</span>
+                      <span className={`text-xs ${(p.stock ?? 0) <= 0 ? 'text-red-600' : (p.stock ?? 0) < 5 ? 'text-amber-600' : 'text-gray-500'}`}>×{p.stock ?? 0}</span>
                     </div>
                   </button>
                 ))}
