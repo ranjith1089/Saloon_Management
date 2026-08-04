@@ -5,6 +5,7 @@ import { NotificationService } from './notification.service';
 import { CouponService } from './coupon.service';
 import { MembershipService } from './membership.service';
 import { ReferralService } from './referral.service';
+import { MessagingService } from './messaging.service';
 
 function round2(n: number) {
   return Math.round(n * 100) / 100;
@@ -150,6 +151,25 @@ export class BookingService {
       );
     }
     await Promise.all(notifyPromises).catch((err) => console.error('Notification error:', err));
+
+    // Best-effort WhatsApp confirmation. No-ops if WA env vars aren't set.
+    // Walk-ins use walkInPhone; registered customers fall back to profile.
+    const waPhone = data.walkInPhone || null;
+    if (booking.customerId || waPhone) {
+      const staffName =
+        (booking.staff?.user?.profile?.firstName || '') +
+        (booking.staff?.user?.profile?.lastName ? ' ' + booking.staff.user.profile.lastName : '');
+      const customerName =
+        booking.walkInName ||
+        (booking.customer?.profile?.firstName || '') +
+          (booking.customer?.profile?.lastName ? ' ' + booking.customer.profile.lastName : '');
+      const text = `Hi ${customerName || 'there'}! Your booking for ${service.name} on ${bookingDate.toDateString()} at ${data.startTime} is confirmed${staffName.trim() ? ' with ' + staffName.trim() : ''}. — ${branch.name}`;
+      MessagingService.sendWhatsAppOnly({
+        userId: booking.customerId,
+        phone: waPhone,
+        text,
+      }).catch(() => {});
+    }
 
     return booking;
   }

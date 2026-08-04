@@ -65,8 +65,7 @@ const adminMenuGroups: MenuGroup[] = [
   {
     heading: 'Sales',
     items: [
-      { path: '/product-sales', label: 'Product Sales', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
-      { path: '/service-payment-collection', label: 'Service Payment Collection', icon: Receipt, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
+      { path: '/sales', label: 'Sales', icon: ShoppingBag, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
     ],
   },
   {

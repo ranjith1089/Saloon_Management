@@ -6,13 +6,13 @@ import {
   User, Lock, Building2, Bell, Info,
   Palette, DollarSign, CalendarDays, CreditCard,
   Save, Loader2, Eye, EyeOff, CheckCircle2, AlertCircle,
-  Plus, Trash2, GripVertical, RefreshCcw,
+  Plus, Trash2, GripVertical, RefreshCcw, MessageCircle, Send,
 } from 'lucide-react';
 import api from '@/services/api';
 import { settingsApi } from '@/services/settings.service';
 import { useAuthStore } from '@/store/authStore';
 
-type Tab = 'profile' | 'password' | 'business' | 'branding' | 'currency' | 'holidays' | 'payments' | 'notifications' | 'system';
+type Tab = 'profile' | 'password' | 'business' | 'branding' | 'currency' | 'holidays' | 'payments' | 'notifications' | 'messaging' | 'system';
 
 export default function Settings() {
   const [tab, setTab] = useState<Tab>('profile');
@@ -26,6 +26,7 @@ export default function Settings() {
     { id: 'holidays', label: 'Holidays', icon: CalendarDays, adminOnly: true },
     { id: 'payments', label: 'Payment Methods', icon: CreditCard, adminOnly: true },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'messaging', label: 'Messaging (WhatsApp)', icon: MessageCircle, adminOnly: true },
     { id: 'system', label: 'System', icon: Info, adminOnly: true },
   ];
 
@@ -70,6 +71,7 @@ export default function Settings() {
           {tab === 'holidays' && <HolidaysTab />}
           {tab === 'payments' && <PaymentsTab />}
           {tab === 'notifications' && <NotificationsTab />}
+          {tab === 'messaging' && <MessagingTab />}
           {tab === 'system' && <SystemTab />}
         </div>
       </div>
@@ -1186,6 +1188,146 @@ function PersistedBanner() {
       <p className="text-xs text-green-800">
         Settings are saved on the server and sync across all your devices.
       </p>
+    </div>
+  );
+}
+
+// ============ MESSAGING (WhatsApp) TAB ============
+function MessagingTab() {
+  const { data: status, isLoading, refetch } = useQuery({
+    queryKey: ['messaging-status'],
+    queryFn: async () => {
+      const res = await api.get('/messaging/status');
+      return res.data?.data?.whatsapp as {
+        configured: boolean;
+        phoneNumberId: string | null;
+        apiVersion: string;
+      };
+    },
+  });
+
+  const [to, setTo] = useState('');
+  const [text, setText] = useState('Hi! This is a test message from your salon.');
+  const [sending, setSending] = useState(false);
+
+  const sendTest = async () => {
+    if (!to.trim() || !text.trim()) {
+      toast.error('Fill in both phone and message');
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await api.post('/messaging/test', { to, text });
+      const id = res.data?.data?.messageId;
+      toast.success('Sent' + (id ? ` (id: ${id.slice(-8)})` : ''));
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Send failed';
+      const hint = err?.response?.data?.hint;
+      toast.error(hint ? `${msg}\n${hint}` : msg, { duration: 8000 });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Status card */}
+      <div className="card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+              status?.configured ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'
+            }`}>
+              <MessageCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold">WhatsApp Cloud API</h3>
+              {isLoading ? (
+                <p className="text-sm text-gray-500">Checking…</p>
+              ) : status?.configured ? (
+                <p className="text-sm text-green-700">
+                  Connected — phone id <code className="text-xs bg-gray-100 px-1 rounded">{status.phoneNumberId}</code> · {status.apiVersion}
+                </p>
+              ) : (
+                <p className="text-sm text-amber-700">Not configured — env vars missing on the server.</p>
+              )}
+            </div>
+          </div>
+          <button onClick={() => refetch()} className="btn-secondary text-xs">
+            <RefreshCcw className="w-3 h-3 mr-1" /> Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Test send */}
+      <div className="card p-5">
+        <h3 className="font-semibold mb-1">Send a test message</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Sends a plain-text WhatsApp message. The recipient must have messaged your business number
+          within the last 24 hours, or (on the free tier) be added as a verified test number in Meta.
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">To (phone with country code)</label>
+            <input
+              type="tel"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              placeholder="e.g. 919876543210"
+              className="input"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={3}
+              className="input"
+            />
+          </div>
+          <button
+            onClick={sendTest}
+            disabled={sending || !status?.configured}
+            className="btn-primary"
+          >
+            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            Send test
+          </button>
+        </div>
+      </div>
+
+      {/* Setup docs */}
+      <div className="card p-5">
+        <h3 className="font-semibold mb-2">Setup guide</h3>
+        <ol className="text-sm text-gray-700 space-y-2 list-decimal pl-5">
+          <li>
+            Create a Meta app at{' '}
+            <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className="text-primary-600 underline">
+              developers.facebook.com/apps
+            </a>{' '}
+            → <strong>Business</strong> → add the <strong>WhatsApp</strong> product.
+          </li>
+          <li>From the WhatsApp panel, copy the temporary access token and the phone number ID.</li>
+          <li>
+            In Railway (backend service) add env vars:
+            <div className="mt-1 space-y-1">
+              <code className="block bg-gray-100 text-xs px-2 py-1 rounded">WHATSAPP_PHONE_NUMBER_ID=1234…</code>
+              <code className="block bg-gray-100 text-xs px-2 py-1 rounded">WHATSAPP_ACCESS_TOKEN=EAAG…</code>
+              <code className="block bg-gray-100 text-xs px-2 py-1 rounded">WHATSAPP_API_VERSION=v20.0  (optional)</code>
+            </div>
+          </li>
+          <li>Wait for Railway to redeploy, click <em>Refresh</em> above, then send a test.</li>
+          <li>Once verified, exchange the temporary token for a permanent System User token.</li>
+        </ol>
+        <div className="mt-4 flex gap-2 items-start bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">
+            Booking confirmations already fire whenever a booking is created — if WhatsApp is configured
+            and the customer has a phone on file, they'll receive a message automatically. No cron yet.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

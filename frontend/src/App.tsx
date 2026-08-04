@@ -31,6 +31,8 @@ import MyBookings from '@/pages/my/MyBookings';
 import MyProfile from '@/pages/my/MyProfile';
 import MyMembership from '@/pages/my/MyMembership';
 import MyHistory from '@/pages/my/MyHistory';
+import PublicBooking from '@/pages/PublicBooking';
+import Sales from '@/pages/Sales';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
 const STAFF_UP = ['ADMIN', 'MANAGER', 'STAFF'] as const;
@@ -41,6 +43,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/book/:branchId" element={<PublicBooking />} />
 
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
@@ -53,8 +56,10 @@ export default function App() {
         <Route path="/earnings"      element={<RoleGuard allow={[...STAFF_UP]}><Earnings /></RoleGuard>} />
         <Route path="/payouts"       element={<RoleGuard allow={[...STAFF_UP]}><Payouts /></RoleGuard>} />
         <Route path="/products"      element={<RoleGuard allow={[...ADMIN_MGR]}><Products /></RoleGuard>} />
-        <Route path="/product-sales" element={<RoleGuard allow={[...STAFF_UP]}><ProductSales /></RoleGuard>} />
-        <Route path="/service-payment-collection" element={<RoleGuard allow={[...STAFF_UP]}><ServicePaymentCollection /></RoleGuard>} />
+        <Route path="/sales" element={<RoleGuard allow={[...STAFF_UP]}><Sales /></RoleGuard>} />
+        {/* Old routes redirect to the unified Sales page */}
+        <Route path="/product-sales" element={<Navigate to="/sales" replace />} />
+        <Route path="/service-payment-collection" element={<Navigate to="/sales" replace />} />
         <Route path="/growth" element={<RoleGuard allow={[...ADMIN_MGR]}><Growth /></RoleGuard>} />
         <Route path="/referrals" element={<RoleGuard allow={[...ADMIN_MGR]}><AdminReferrals /></RoleGuard>} />
         <Route path="/notification-templates" element={<RoleGuard allow={[...ADMIN_MGR]}><NotificationTemplates /></RoleGuard>} />
