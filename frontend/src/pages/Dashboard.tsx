@@ -266,19 +266,21 @@ function AdminHome({ data }: { data: any }) {
         <p className="text-sm text-gray-500 mt-1">Overview of your salon operations</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {statCards.map((stat) => (
-          <div key={stat.label} className="card">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1 tabular-nums break-all">{stat.value}</p>
-                {(stat as any).sub && <p className="text-xs text-gray-400 mt-0.5">{(stat as any).sub}</p>}
-              </div>
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
-                <stat.icon className="w-5 h-5" />
+          <div key={stat.label} className="card !p-3 sm:!p-4 min-w-0">
+            {/* Label + tiny icon badge on the same row so the number owns the
+                width below and never wraps. Icon shrinks on tighter widths. */}
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-xs sm:text-sm text-gray-500 truncate">{stat.label}</p>
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
+                <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
+            <p className="text-lg sm:text-xl xl:text-2xl font-bold mt-1 tabular-nums whitespace-nowrap overflow-hidden text-ellipsis" title={String(stat.value)}>
+              {stat.value}
+            </p>
+            {(stat as any).sub && <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 truncate">{(stat as any).sub}</p>}
           </div>
         ))}
       </div>

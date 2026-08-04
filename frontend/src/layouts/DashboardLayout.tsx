@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/services/api';
+import { useBranding } from '@/hooks/useBranding';
 import {
   LayoutDashboard,
   Calendar,
@@ -160,12 +161,7 @@ export default function DashboardLayout() {
         }`}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Scissors className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold text-gray-900">Salon</span>
-          </div>
+          <BrandMark />
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
             <X className="w-5 h-5" />
           </button>
@@ -313,6 +309,29 @@ function NotificationBell() {
           {unread > 9 ? '9+' : unread}
         </span>
       )}
+    </Link>
+  );
+}
+
+// Sidebar brand mark — uses the salon's uploaded logo + business name from
+// Settings > Branding, with graceful fallback to the default scissors icon.
+function BrandMark() {
+  const { businessName, logoUrl } = useBranding();
+  return (
+    <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt=""
+          className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+      ) : (
+        <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <Scissors className="w-5 h-5 text-white" />
+        </div>
+      )}
+      <span className="text-lg font-bold text-gray-900 truncate">{businessName}</span>
     </Link>
   );
 }
