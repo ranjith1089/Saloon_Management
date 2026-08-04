@@ -321,12 +321,13 @@ export default function Sales() {
         toast(`${results.length - failures.length}/${results.length} lines saved. Check receipt.`);
       }
 
-      // Build receipt data from what we have client-side + successful results
+      // One receipt id per checkout — the individual booking / product-sale
+      // numbers are still visible on the Bookings and Products pages.
       const receiptData: ReceiptData = {
         salonName: branch?.name || 'Salon',
         salonAddress: branch?.address || '',
         salonPhone: branch?.phone || '',
-        receiptNumber: results.map((r) => r.number).filter(Boolean).join(' + ') || `S${Date.now()}`,
+        receiptNumber: `R${Date.now().toString().slice(-10)}`,
         date: new Date().toISOString(),
         customerName: walkInName || (customerId ? '(Registered customer)' : 'Walk-in customer'),
         customerPhone: walkInPhone || '',
