@@ -32,6 +32,7 @@ import MyProfile from '@/pages/my/MyProfile';
 import MyMembership from '@/pages/my/MyMembership';
 import MyHistory from '@/pages/my/MyHistory';
 import PublicBooking from '@/pages/PublicBooking';
+import PublicHome from '@/pages/PublicHome';
 import Sales from '@/pages/Sales';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
@@ -41,12 +42,13 @@ const ADMIN_ONLY = ['ADMIN'] as const;
 export default function App() {
   return (
     <Routes>
+      {/* Public routes — no auth required */}
+      <Route path="/" element={<PublicHome />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/book/:branchId" element={<PublicBooking />} />
 
       <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/bookings" element={<Bookings />} />
         <Route path="/branches"      element={<RoleGuard allow={[...ADMIN_MGR]}><Branches /></RoleGuard>} />
