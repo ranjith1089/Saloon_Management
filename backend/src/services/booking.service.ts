@@ -308,7 +308,12 @@ export class BookingService {
     const skip = (page - 1) * limit;
 
     const where: any = { ...scope };
-    if (query.status) where.status = query.status;
+    if (query.status) {
+      // Accept a single value ("PENDING") or a comma-separated list
+      // ("PENDING,CONFIRMED") — the widget uses the latter for "collectable" bookings.
+      const parts = String(query.status).split(',').map((s) => s.trim()).filter(Boolean);
+      where.status = parts.length > 1 ? { in: parts } : parts[0];
+    }
     if (query.branchId) where.branchId = query.branchId;
     if (query.staffId && !scope.staffId) where.staffId = query.staffId;
     if (query.customerId && !scope.customerId) where.customerId = query.customerId;
