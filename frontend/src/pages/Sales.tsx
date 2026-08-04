@@ -51,6 +51,7 @@ type ServiceLine = {
   unitPrice: number;
   duration: number;
   staffId?: string;                // required for unattached (quick-sale)
+  staffName?: string;              // display-only, resolved when line is added
   attachedBookingId?: string;      // if set, pays that pending booking
 };
 type CartLine = ProductLine | ServiceLine;
@@ -172,6 +173,10 @@ export default function Sales() {
   };
 
   const addService = (s: any, attachedBookingId?: string) => {
+    const pickedStaff = staff?.find((x: any) => x.id === staffId);
+    const staffName = pickedStaff
+      ? [pickedStaff.user?.profile?.firstName, pickedStaff.user?.profile?.lastName].filter(Boolean).join(' ')
+      : undefined;
     setCart((c) => [...c, {
       kind: 'SERVICE',
       lineId: uid(),
@@ -180,6 +185,7 @@ export default function Sales() {
       unitPrice: Number(s.price ?? 0),
       duration: s.duration ?? 30,
       staffId: staffId || undefined,
+      staffName,
       attachedBookingId,
     }]);
   };
@@ -197,13 +203,31 @@ export default function Sales() {
   const clearCart = () => setCart([]);
 
   // Attach an existing PENDING booking → add service line + set customer.
+  // Guards against attaching the same booking twice (would create two
+  // collect-payment calls on the same record) and populates every visible
+  // field so the operator can see what's on the ticket at a glance.
   const attachBooking = (b: any) => {
-    // Prefill customer (registered or walk-in) so receipt has full context
-    if (b.customer?.id) setCustomerId(b.customer.id);
-    else {
-      setWalkInName(b.walkInName || '');
-      setWalkInPhone(b.walkInPhone || '');
+    const already = cart.some((l) => l.kind === 'SERVICE' && l.attachedBookingId === b.id);
+    if (already) {
+      toast.error('That booking is already on the ticket');
+      return;
     }
+
+    // Resolve customer name/phone for display — works for both registered
+    // customers (via profile) and walk-ins.
+    const customerName = b.customer?.profile
+      ? [b.customer.profile.firstName, b.customer.profile.lastName].filter(Boolean).join(' ')
+      : b.walkInName || '';
+    const customerPhone = b.customer?.profile?.phone || b.walkInPhone || '';
+
+    if (b.customer?.id) setCustomerId(b.customer.id);
+    if (customerName) setWalkInName(customerName);
+    if (customerPhone) setWalkInPhone(customerPhone);
+
+    const staffName = b.staff
+      ? [b.staff.user?.profile?.firstName, b.staff.user?.profile?.lastName].filter(Boolean).join(' ')
+      : undefined;
+
     setCart((c) => [...c, {
       kind: 'SERVICE',
       lineId: uid(),
@@ -212,9 +236,10 @@ export default function Sales() {
       unitPrice: Number(b.totalAmount ?? b.service.price),
       duration: b.service.duration,
       staffId: b.staff?.id,
+      staffName,
       attachedBookingId: b.id,
     }]);
-    toast.success(`Attached: ${b.service.name}`);
+    toast.success(`Attached: ${b.service.name}${customerName ? ' · ' + customerName : ''}`);
     setAttachOpen(false);
   };
 
@@ -467,24 +492,39 @@ export default function Sales() {
             {attachOpen && (
               <div className="mt-3 space-y-2 max-h-56 overflow-y-auto">
                 {(pendingBookings || []).length === 0 && <p className="text-xs text-gray-500 text-center py-3">No pending bookings today.</p>}
-                {(pendingBookings || []).map((b: any) => (
-                  <button
-                    key={b.id}
-                    onClick={() => attachBooking(b)}
-                    className="w-full text-left border border-gray-200 hover:border-primary-500 rounded-lg p-2 flex items-center justify-between"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">
-                        {b.customer?.profile
-                          ? `${b.customer.profile.firstName} ${b.customer.profile.lastName || ''}`.trim()
-                          : b.walkInName || 'Walk-in'}
-                        <span className="text-xs text-gray-500 ml-2">{b.startTime}</span>
+                {(pendingBookings || []).map((b: any) => {
+                  const attached = cart.some((l) => l.kind === 'SERVICE' && l.attachedBookingId === b.id);
+                  const staffFullName = b.staff
+                    ? [b.staff.user?.profile?.firstName, b.staff.user?.profile?.lastName].filter(Boolean).join(' ')
+                    : '';
+                  const customerFullName = b.customer?.profile
+                    ? `${b.customer.profile.firstName || ''} ${b.customer.profile.lastName || ''}`.trim()
+                    : b.walkInName || 'Walk-in';
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => attachBooking(b)}
+                      disabled={attached}
+                      className={`w-full text-left border rounded-lg p-2 flex items-center justify-between transition-colors ${
+                        attached
+                          ? 'border-green-300 bg-green-50 opacity-70 cursor-not-allowed'
+                          : 'border-gray-200 hover:border-primary-500'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {customerFullName}
+                          <span className="text-xs text-gray-500 ml-2">{b.startTime}</span>
+                          {attached && <span className="text-xs text-green-700 ml-2 font-semibold">✓ Added</span>}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          {b.service.name}{staffFullName ? ' · with ' + staffFullName : ''}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 truncate">{b.service.name} · {b.staff?.user?.profile?.firstName || ''}</div>
-                    </div>
-                    <span className="text-sm font-bold text-primary-700 ml-3">{money(b.totalAmount)}</span>
-                  </button>
-                ))}
+                      <span className="text-sm font-bold text-primary-700 ml-3">{money(b.totalAmount)}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -509,9 +549,10 @@ export default function Sales() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-medium truncate">{l.name}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 truncate">
                         {money(l.unitPrice)}
-                        {l.kind === 'SERVICE' && l.attachedBookingId && ' · attached to booking'}
+                        {l.kind === 'SERVICE' && l.staffName && ` · with ${l.staffName}`}
+                        {l.kind === 'SERVICE' && l.attachedBookingId && ' · attached'}
                       </div>
                     </div>
                     {l.kind === 'PRODUCT' ? (
@@ -532,8 +573,13 @@ export default function Sales() {
               <div className="mt-3">
                 <label className="text-xs font-semibold text-gray-700 mb-1 block">Staff (for services)</label>
                 <select value={staffId} onChange={(e) => {
-                  setStaffId(e.target.value);
-                  setCart((c) => c.map((l) => l.kind === 'SERVICE' && !l.attachedBookingId ? { ...l, staffId: e.target.value } : l));
+                  const nextId = e.target.value;
+                  const picked = staff?.find((x: any) => x.id === nextId);
+                  const nextName = picked
+                    ? [picked.user?.profile?.firstName, picked.user?.profile?.lastName].filter(Boolean).join(' ')
+                    : undefined;
+                  setStaffId(nextId);
+                  setCart((c) => c.map((l) => l.kind === 'SERVICE' && !l.attachedBookingId ? { ...l, staffId: nextId, staffName: nextName } : l));
                 }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                   <option value="">— Choose staff —</option>
                   {(staff || []).map((s: any) => (
