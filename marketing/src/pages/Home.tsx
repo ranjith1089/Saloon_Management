@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -5,6 +6,7 @@ import {
   Crown, TrendingUp, Star, Zap, Sparkles, CheckCircle2,
 } from 'lucide-react';
 import SectionHeading from '@/components/SectionHeading';
+import { DashboardMock, BookingsMock, POSMock, WhatsAppMock, ProductsMock } from '@/components/DashboardMock';
 
 const APP = 'https://saloon-management-nine.vercel.app';
 
@@ -43,38 +45,23 @@ export default function Home() {
             initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
             className="relative"
           >
-            <div className="relative rounded-3xl overflow-hidden shadow-pop border-8 border-white bg-gradient-to-br from-brand-50 to-cream aspect-[4/3]">
-              <div className="absolute inset-0 p-6 flex flex-col gap-4">
-                <div className="bg-white rounded-xl p-4 shadow-soft flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold">R</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="h-2 bg-charcoal/10 rounded w-24 mb-1.5"></div>
-                    <div className="h-2 bg-charcoal/5 rounded w-32"></div>
-                  </div>
-                  <div className="text-brand-600 font-bold">₹1,200</div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 flex-1">
-                  {['Haircut','Facial','Massage','Manicure'].map((s) => (
-                    <div key={s} className="bg-white rounded-xl p-3 shadow-soft flex flex-col justify-between">
-                      <div className="text-xs font-semibold text-charcoal/70">{s}</div>
-                      <div className="text-brand-600 font-bold text-sm">₹500</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="bg-charcoal text-white rounded-xl p-4 flex items-center justify-between">
-                  <div>
-                    <div className="text-xs opacity-70">Today's revenue</div>
-                    <div className="font-black text-2xl">₹17,106</div>
-                  </div>
-                  <TrendingUp className="w-8 h-8 text-brand-500" />
-                </div>
-              </div>
+            <div className="rounded-3xl overflow-hidden shadow-pop border-8 border-white bg-white">
+              <DashboardMock />
             </div>
             <div className="absolute -top-4 -right-4 bg-white rounded-2xl px-4 py-3 shadow-pop flex items-center gap-2 border border-charcoal/5">
               <MessageCircle className="w-5 h-5 text-green-500" />
               <div>
                 <div className="text-xs font-semibold">WhatsApp sent</div>
                 <div className="text-[10px] text-charcoal/60">2 min ago</div>
+              </div>
+            </div>
+            <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl px-4 py-3 shadow-pop flex items-center gap-2 border border-charcoal/5">
+              <div className="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center">
+                <ShoppingBag className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-semibold">Sale · ₹2,478</div>
+                <div className="text-[10px] text-charcoal/60">Just now</div>
               </div>
             </div>
           </motion.div>
@@ -134,6 +121,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* PRODUCT SHOWCASE */}
+      <ProductShowcase />
 
       {/* HOW IT WORKS */}
       <section className="container-x py-20">
@@ -260,6 +250,66 @@ export default function Home() {
         </div>
       </section>
     </>
+  );
+}
+
+// A tabbed showcase of the actual product UI — every "screenshot" is a
+// live CSS component so it stays in sync as the product evolves.
+function ProductShowcase() {
+  const TABS = [
+    { key: 'dashboard', label: 'Dashboard',  Comp: DashboardMock,  desc: 'Every KPI that actually matters — appointments, revenue, product sales, commissions, customers.' },
+    { key: 'bookings',  label: 'Bookings',   Comp: BookingsMock,   desc: 'Staff-grid, table, or calendar view. Drag to reschedule. Instant conflict detection.' },
+    { key: 'pos',       label: 'POS',        Comp: POSMock,        desc: 'Products and services on one ticket. Quick-pay buttons for Cash / UPI / Card. GST handled server-side.' },
+    { key: 'whatsapp',  label: 'WhatsApp',   Comp: WhatsAppMock,   desc: 'Automated confirmations, reminders, and win-back messages via the official WhatsApp Cloud API.' },
+    { key: 'products',  label: 'Products',   Comp: ProductsMock,   desc: 'Shared catalog. Per-branch stock. Low-stock alerts. MRP / Buy / Sell / Member pricing.' },
+  ];
+  const [active, setActive] = useState('dashboard');
+  const current = TABS.find((t) => t.key === active)!;
+  const Comp = current.Comp;
+  return (
+    <section className="bg-white border-y border-charcoal/5">
+      <div className="container-x py-20">
+        <SectionHeading
+          eyebrow="See it in action"
+          title={<>The product, up close.</>}
+          sub="Every screen below is live UI — the same components that ship in the app."
+        />
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setActive(t.key)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                active === t.key ? 'bg-brand-600 text-white shadow-pop' : 'bg-cream border border-charcoal/10 text-charcoal/70 hover:border-brand-600'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="max-w-4xl mx-auto"
+        >
+          <div className="rounded-3xl bg-gradient-to-br from-brand-50 via-cream to-brand-50 p-4 sm:p-8 shadow-pop">
+            {/* Browser chrome */}
+            <div className="flex items-center gap-1.5 mb-3 px-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+              <div className="flex-1 mx-3 h-6 bg-white/70 rounded-md text-[10px] text-charcoal/50 flex items-center px-3">
+                salon.aveoninfotech.com/{current.key === 'dashboard' ? '' : current.key}
+              </div>
+            </div>
+            <Comp />
+          </div>
+          <p className="mt-6 text-center text-charcoal/70 max-w-xl mx-auto">{current.desc}</p>
+        </motion.div>
+      </div>
+    </section>
   );
 }
 

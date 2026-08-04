@@ -2,6 +2,7 @@
  * Printable receipt shown right after a successful Sales checkout.
  * On print, an @media print stylesheet hides everything except the receipt.
  */
+import { useEffect } from 'react';
 import { Printer, MessageCircle, X, AlertCircle } from 'lucide-react';
 
 export interface ReceiptLine {
@@ -31,7 +32,16 @@ export interface ReceiptData {
 
 const money = (n: number) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-export default function Receipt({ data, onClose }: { data: ReceiptData; onClose: () => void }) {
+export default function Receipt({ data, onClose, autoPrint = false }: { data: ReceiptData; onClose: () => void; autoPrint?: boolean }) {
+  // Auto-fire the print dialog when the receipt is shown, for thermal-printer
+  // workflows. Small delay lets the modal paint first.
+  useEffect(() => {
+    if (autoPrint) {
+      const t = setTimeout(() => window.print(), 250);
+      return () => clearTimeout(t);
+    }
+  }, [autoPrint]);
+
   const dt = new Date(data.date);
   const dateStr = dt.toLocaleString('en-IN', {
     day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -51,10 +61,23 @@ export default function Receipt({ data, onClose }: { data: ReceiptData; onClose:
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 print:bg-white print:p-0 print:static">
       <style>{`
         @media print {
+          @page { size: 80mm auto; margin: 0; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           body > *:not(.receipt-print-root) { display: none !important; }
-          .receipt-print-root { position: static !important; inset: auto !important; background: white !important; padding: 0 !important; }
+          .receipt-print-root { position: static !important; inset: auto !important; background: white !important; padding: 0 !important; display: block !important; }
           .receipt-print-root .no-print { display: none !important; }
-          .receipt-print-root .receipt-paper { box-shadow: none !important; max-width: none !important; width: 80mm !important; padding: 4mm !important; }
+          .receipt-print-root .receipt-paper {
+            box-shadow: none !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            max-width: none !important;
+            width: 80mm !important;
+            padding: 3mm !important;
+            font-size: 11px !important;
+            line-height: 1.35 !important;
+            color: #000 !important;
+          }
+          .receipt-print-root .receipt-paper * { color: #000 !important; }
         }
       `}</style>
       <div className="receipt-print-root w-full flex flex-col items-center justify-center gap-3">

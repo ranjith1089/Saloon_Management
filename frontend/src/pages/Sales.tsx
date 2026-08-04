@@ -24,11 +24,12 @@ import toast from 'react-hot-toast';
 import {
   Search, Package, Plus, Minus, X, User, Building2, CreditCard,
   Loader2, ShoppingCart, Scissors, Banknote, Smartphone,
-  Link2, Printer, IndianRupee,
+  Link2, Printer, IndianRupee, ScanLine,
 } from 'lucide-react';
 import api from '@/services/api';
 import { usePaymentMethods } from '@/hooks/usePaymentMethods';
 import { useDefaultTaxRate } from '@/hooks/useDefaultTaxRate';
+import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import Receipt, { ReceiptData } from '@/components/Receipt';
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,7 @@ export default function Sales() {
   // the ticket is for, independent of the walk-in inputs below.
   const [attachedCustomer, setAttachedCustomer] = useState<{ id: string | null; name: string; phone: string } | null>(null);
   const [staffId, setStaffId] = useState('');
+  const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem('sales.autoPrint') === '1');
   const [applyGst, setApplyGst] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -179,6 +181,24 @@ export default function Sales() {
       }];
     });
   };
+
+  // Barcode scanner — matches against product.barcode or product.sku and
+  // adds one to the cart. Ignored while the operator is typing in an input.
+  useBarcodeScanner((code) => {
+    if (!products || products.length === 0) {
+      toast.error('Load products before scanning');
+      return;
+    }
+    const match = products.find((p: any) =>
+      String(p.barcode || '').trim() === code || String(p.sku || '').trim() === code
+    );
+    if (!match) {
+      toast.error(`No product for barcode ${code}`);
+      return;
+    }
+    addProduct(match);
+    toast.success(`Scanned: ${match.name}`);
+  }, !!branchId);
 
   const addService = (s: any, attachedBookingId?: string) => {
     const pickedStaff = staff?.find((x: any) => x.id === staffId);
@@ -445,7 +465,28 @@ export default function Sales() {
             <p className="text-xs text-gray-500">Products, services, and payment collection — one ticket</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Scanner-ready indicator — pulses when a scan buffer is being accumulated */}
+          <span
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1.5 rounded-full"
+            title="Barcode scanner ready — click anywhere non-input then scan"
+          >
+            <ScanLine className="w-3.5 h-3.5" />
+            Scanner ready
+          </span>
+          {/* Auto-print toggle — persisted to localStorage */}
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold text-charcoal bg-white border border-gray-300 px-2.5 py-1.5 rounded-full cursor-pointer" title="Automatically open the print dialog after checkout">
+            <input
+              type="checkbox"
+              checked={autoPrint}
+              onChange={(e) => {
+                setAutoPrint(e.target.checked);
+                localStorage.setItem('sales.autoPrint', e.target.checked ? '1' : '0');
+              }}
+              className="w-3.5 h-3.5"
+            />
+            <Printer className="w-3.5 h-3.5" /> Auto-print
+          </label>
           <select
             value={branchId}
             onChange={(e) => setBranchId(e.target.value)}
@@ -713,7 +754,7 @@ export default function Sales() {
         </div>
       </div>
 
-      {receipt && <Receipt data={receipt} onClose={() => setReceipt(null)} />}
+      {receipt && <Receipt data={receipt} onClose={() => setReceipt(null)} autoPrint={autoPrint} />}
     </div>
   );
 }
