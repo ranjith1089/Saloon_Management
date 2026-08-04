@@ -81,6 +81,10 @@ export default function Sales() {
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
   const [customerId, setCustomerId] = useState('');
+  // Set when the operator attaches a pending booking or picks a registered
+  // customer. Rendered as a distinctive chip so the operator always sees who
+  // the ticket is for, independent of the walk-in inputs below.
+  const [attachedCustomer, setAttachedCustomer] = useState<{ id: string | null; name: string; phone: string } | null>(null);
   const [staffId, setStaffId] = useState('');
   const [applyGst, setApplyGst] = useState(false);
   const [discount, setDiscount] = useState(0);
@@ -146,6 +150,7 @@ export default function Sales() {
     const raw = localStorage.getItem(cartKey(branchId));
     if (raw) { try { setCart(JSON.parse(raw)); } catch { setCart([]); } } else setCart([]);
     setWalkInName(''); setWalkInPhone(''); setCustomerId(''); setStaffId('');
+    setAttachedCustomer(null);
   }, [branchId]);
   useEffect(() => {
     if (!branchId) return;
@@ -191,6 +196,12 @@ export default function Sales() {
   };
 
   const removeLine = (idx: number) => setCart((c) => c.filter((_, i) => i !== idx));
+  const detachCustomer = () => {
+    setAttachedCustomer(null);
+    setCustomerId('');
+    setWalkInName('');
+    setWalkInPhone('');
+  };
   const bumpQty = (idx: number, delta: number) => {
     setCart((c) => c.map((l, i) => {
       if (i !== idx || l.kind !== 'PRODUCT') return l;
@@ -221,6 +232,13 @@ export default function Sales() {
     const customerPhone = b.customer?.profile?.phone || b.walkInPhone || '';
 
     if (b.customer?.id) setCustomerId(b.customer.id);
+    setAttachedCustomer({
+      id: b.customer?.id || null,
+      name: customerName || 'Walk-in',
+      phone: customerPhone,
+    });
+    // Also mirror into the walk-in fields so downstream code paths
+    // (quick-sale for extra items, receipt fallback) have the data.
     if (customerName) setWalkInName(customerName);
     if (customerPhone) setWalkInPhone(customerPhone);
 
@@ -298,7 +316,7 @@ export default function Sales() {
               method: paymentMethod,
               amount: Number(line.unitPrice),
               taxRate: applyGst ? gstRate : 0,
-              markCompleted: true,
+              alsoComplete: true,   // flips status to COMPLETED so it leaves the pending list
             });
             results.push({
               kind: 'SERVICE',
@@ -354,8 +372,8 @@ export default function Sales() {
         salonPhone: branch?.phone || '',
         receiptNumber: `R${Date.now().toString().slice(-10)}`,
         date: new Date().toISOString(),
-        customerName: walkInName || (customerId ? '(Registered customer)' : 'Walk-in customer'),
-        customerPhone: walkInPhone || '',
+        customerName: attachedCustomer?.name || walkInName || (customerId ? 'Registered customer' : 'Walk-in customer'),
+        customerPhone: attachedCustomer?.phone || walkInPhone || '',
         paymentMethod,
         lines: cart.map((l) => ({
           name: l.name + (l.kind === 'PRODUCT' && l.quantity > 1 ? ` × ${l.quantity}` : ''),
@@ -375,6 +393,10 @@ export default function Sales() {
       clearCart();
       setDiscount(0);
       setNotes('');
+      setAttachedCustomer(null);
+      setWalkInName('');
+      setWalkInPhone('');
+      setCustomerId('');
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['sales-products'] });
       queryClient.invalidateQueries({ queryKey: ['sales-pending'] });
@@ -590,10 +612,25 @@ export default function Sales() {
             )}
 
             {/* Customer */}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <input value={walkInName} onChange={(e) => setWalkInName(e.target.value)} placeholder="Customer name (optional)" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              <input value={walkInPhone} onChange={(e) => setWalkInPhone(e.target.value)} placeholder="Phone (optional)" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-            </div>
+            {attachedCustomer ? (
+              <div className="mt-3 flex items-center gap-2 bg-primary-50 border border-primary-200 rounded-lg p-2">
+                <div className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  {(attachedCustomer.name || '?').slice(0, 1).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-primary-900 truncate">{attachedCustomer.name}</div>
+                  <div className="text-xs text-primary-700 truncate">
+                    {attachedCustomer.phone || 'No phone'} · {attachedCustomer.id ? 'Registered' : 'Walk-in'}
+                  </div>
+                </div>
+                <button onClick={detachCustomer} className="text-xs text-primary-700 hover:underline flex-shrink-0">Change</button>
+              </div>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <input value={walkInName} onChange={(e) => setWalkInName(e.target.value)} placeholder="Customer name (optional)" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input value={walkInPhone} onChange={(e) => setWalkInPhone(e.target.value)} placeholder="Phone (optional)" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+            )}
 
             {/* Discount + GST */}
             <div className="mt-3 grid grid-cols-2 gap-2">
