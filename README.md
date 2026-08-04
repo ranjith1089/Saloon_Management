@@ -352,4 +352,9 @@ npx ts-node prisma/bootstrap.ts && npx prisma migrate deploy && node dist/server
 
 This software and its source code are the exclusive property of Aveon Infotech Private Limited. No part of this codebase may be reproduced, distributed, modified, sold, sublicensed or used to derive a competing product without prior written permission from Aveon Infotech Private Limited.
 
-For licensing enquiries, contact Aveon Infotech Private Limited.
+### Contact
+
+For licensing, partnership, or commercial enquiries:
+
+- **Email:** contact@aveoninfotech.com
+- **Phone:** +91 8754006483
