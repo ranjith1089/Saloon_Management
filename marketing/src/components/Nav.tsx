@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Scissors } from 'lucide-react';
+import { Menu, X, Scissors, LogIn } from 'lucide-react';
 
 const links = [
   { to: '/',         label: 'Home' },
@@ -51,13 +51,27 @@ export default function Nav() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
-          <a href="https://saloon-management-nine.vercel.app/login" className="text-sm font-medium text-charcoal/70 hover:text-charcoal px-3">Login</a>
+          <a
+            href="https://saloon-management-nine.vercel.app/login"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-charcoal hover:text-brand-600 border border-charcoal/15 hover:border-brand-600 px-4 py-2.5 rounded-full transition-colors"
+          >
+            <LogIn className="w-4 h-4" /> Login
+          </a>
           <a href="https://saloon-management-nine.vercel.app/register" className="btn-primary text-sm !py-2.5">Start free trial</a>
         </div>
 
-        <button onClick={() => setOpen(!open)} className="md:hidden">
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        {/* Mobile — quick Login always visible next to hamburger */}
+        <div className="md:hidden flex items-center gap-2">
+          <a
+            href="https://saloon-management-nine.vercel.app/login"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-charcoal hover:text-brand-600 border border-charcoal/15 px-3 py-1.5 rounded-full"
+          >
+            <LogIn className="w-3.5 h-3.5" /> Login
+          </a>
+          <button onClick={() => setOpen(!open)}>
+            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -75,7 +89,12 @@ export default function Nav() {
                 {l.label}
               </NavLink>
             ))}
-            <a href="https://saloon-management-nine.vercel.app/register" className="btn-primary text-sm justify-center mt-2">Start free trial</a>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <a href="https://saloon-management-nine.vercel.app/login" className="btn-secondary text-sm justify-center">
+                <LogIn className="w-4 h-4" /> Login
+              </a>
+              <a href="https://saloon-management-nine.vercel.app/register" className="btn-primary text-sm justify-center">Start free trial</a>
+            </div>
           </div>
         </div>
       )}
