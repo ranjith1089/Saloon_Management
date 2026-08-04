@@ -134,8 +134,11 @@ export default function Sales() {
     queryKey: ['sales-pending', branchId],
     queryFn: async () => {
       const t = new Date().toISOString().split('T')[0];
+      // "Collectable" = payment still owed. Filtering by paymentStatus
+      // (not lifecycle status) hides bookings that were paid via an older
+      // flow but never had their status flipped to COMPLETED.
       return (await api.get('/bookings', {
-        params: { branchId, status: 'PENDING,CONFIRMED', startDate: t, endDate: t, limit: 50 },
+        params: { branchId, paymentStatus: 'PENDING', startDate: t, endDate: t, limit: 50 },
       })).data.data as any[];
     },
     enabled: !!branchId,
@@ -280,7 +283,7 @@ export default function Sales() {
       const productLines = cart.filter((l): l is ProductLine => l.kind === 'PRODUCT');
       const serviceLines = cart.filter((l): l is ServiceLine => l.kind === 'SERVICE');
 
-      const results: { kind: string; id?: string; number?: string; amount: number; error?: string }[] = [];
+      const results: { kind: string; id?: string; number?: string; amount: number; error?: string; attachedBookingId?: string }[] = [];
 
       // 1. Product ticket (all product lines in one sale)
       if (productLines.length > 0) {
@@ -348,13 +351,35 @@ export default function Sales() {
             });
           }
         } catch (e: any) {
-          results.push({ kind: 'SERVICE', amount: 0, error: e?.response?.data?.message || 'Service sale failed' });
+          results.push({
+            kind: 'SERVICE',
+            amount: 0,
+            error: e?.response?.data?.message || 'Service sale failed',
+            attachedBookingId: line.attachedBookingId,
+          });
         }
       }
       return results;
     },
     onSuccess: (results) => {
       const failures = results.filter((r) => r.error);
+
+      // Server says the attached booking was already paid — the pending list
+      // was stale. Drop the offending lines, refetch, and don't show a
+      // receipt for a sale that never actually happened.
+      const alreadyPaidIds = failures
+        .filter((f) => /already paid/i.test(f.error || '') && f.attachedBookingId)
+        .map((f) => f.attachedBookingId!);
+      if (alreadyPaidIds.length > 0) {
+        setCart((c) => c.filter((l) => !(l.kind === 'SERVICE' && l.attachedBookingId && alreadyPaidIds.includes(l.attachedBookingId))));
+        queryClient.invalidateQueries({ queryKey: ['sales-pending'] });
+        toast.error(alreadyPaidIds.length === 1
+          ? 'That booking was already paid — removed and list refreshed.'
+          : `${alreadyPaidIds.length} bookings were already paid — removed and list refreshed.`);
+        // If everything failed for this reason, stop here.
+        if (failures.length === results.length) return;
+      }
+
       if (failures.length === 0) {
         toast.success(`Sale · ${money(total)}`);
       } else if (failures.length === results.length) {
