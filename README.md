@@ -2,7 +2,7 @@
 
 > A comprehensive, multi-branch salon & spa operations platform — bookings, POS, memberships, growth tools, WhatsApp automation and an embeddable public booking widget.
 
-**Author:** Ranjith Kumar R
+**Author:** Parvathi Gurusamy
 **License:** © Aveon Infotech Private Limited. All rights reserved.
 
 ---
@@ -342,7 +342,8 @@ npx ts-node prisma/bootstrap.ts && npx prisma migrate deploy && node dist/server
 
 ## 11. Author
 
-**Ranjith Kumar R**
+**Parvathi Gurusamy**  
+Founder · Aveon Infotech Private Limited
 
 ---
 
