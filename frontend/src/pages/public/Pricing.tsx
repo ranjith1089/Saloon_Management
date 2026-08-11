@@ -6,7 +6,7 @@ import SectionHeading from '@/components/public/SectionHeading';
 
 
 const CURRENCIES = {
-  INR: { sym: '₹', starter: 999,  growth: 2499, pro: 4999, region: 'India' },
+  INR: { sym: '₹', starter: 249,  growth: 699,  pro: 1399, region: 'India' },
   USD: { sym: '$', starter: 39,   growth: 79,   pro: 149,  region: 'USA' },
   GBP: { sym: '£', starter: 29,   growth: 59,   pro: 119,  region: 'UK / EU' },
   AED: { sym: 'AED ', starter: 149, growth: 349, pro: 649, region: 'UAE' },
@@ -19,7 +19,7 @@ const TIER_FEATURES: { label: string; starter: boolean | string; growth: boolean
   { label: 'Bookings — Table/Calendar/Staff-grid', starter: true, growth: true, pro: true },
   { label: 'Unified POS + printable receipt', starter: true, growth: true, pro: true },
   { label: 'Public booking widget',        starter: true,       growth: true,         pro: true },
-  { label: 'WhatsApp msgs included/mo',    starter: '500',      growth: '2,000',      pro: '5,000' },
+  { label: 'WhatsApp msgs included/mo',    starter: '100',      growth: '500',        pro: '1,000' },
   { label: 'Memberships & member pricing', starter: false,      growth: true,         pro: true },
   { label: 'Referrals + loyalty streaks',  starter: false,      growth: true,         pro: true },
   { label: 'Growth toolkit (rebook/winback/birthday)', starter: false, growth: true, pro: true },
@@ -81,7 +81,9 @@ export default function Pricing() {
             </button>
           </div>
         </div>
-        <p className="text-xs text-charcoal/50 mt-3">Prices shown for {c.region}. All prices exclude taxes.</p>
+        <p className="text-xs text-charcoal/50 mt-3">
+          Prices shown for {c.region}. {ccy === 'INR' ? '18% GST additional as per Indian tax law.' : 'All prices exclude taxes.'}
+        </p>
       </section>
 
       {/* Tier cards */}
@@ -89,19 +91,19 @@ export default function Pricing() {
         <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
           <TierCard
             name="Starter" tag="Solo salons"
-            price={price(c.starter)} suffix={annual ? '/year' : '/mo per branch'}
+            price={price(c.starter)} suffix={annual ? '/year' : `/mo per branch${ccy === 'INR' ? ' + GST' : ''}`}
             desc="Everything you need to run a single salon."
             features={['Bookings + POS', 'Public booking widget', '500 WhatsApp msgs', 'Up to 3 staff', 'Custom branding']}
           />
           <TierCard
             name="Growth" tag="Most popular" highlight
-            price={price(c.growth)} suffix={annual ? '/year' : '/mo per branch'}
+            price={price(c.growth)} suffix={annual ? '/year' : `/mo per branch${ccy === 'INR' ? ' + GST' : ''}`}
             desc="For salons ready to grow their client base."
             features={['Everything in Starter', 'Memberships', 'Referrals + loyalty', 'Growth toolkit', '2,000 WhatsApp msgs', 'Up to 10 staff']}
           />
           <TierCard
             name="Pro" tag="Chains & spas"
-            price={price(c.pro)} suffix={annual ? '/year' : '/mo per branch'}
+            price={price(c.pro)} suffix={annual ? '/year' : `/mo per branch${ccy === 'INR' ? ' + GST' : ''}`}
             desc="Multi-branch operations with priority support."
             features={['Everything in Growth', 'Multi-branch reports', 'Unlimited staff', '5,000 WhatsApp msgs', 'API access', 'Priority support']}
           />

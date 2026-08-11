@@ -199,16 +199,16 @@ export default function Home() {
           />
           <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
             {[
-              { name: 'Starter', price: '₹999', tag: 'Solo salons', features: ['Bookings + POS', '500 WhatsApp msgs', 'Up to 3 staff', 'Public booking widget'] },
-              { name: 'Growth',  price: '₹2,499', tag: 'Most popular', highlight: true, features: ['Everything in Starter', 'Memberships & referrals', '2,000 WhatsApp msgs', 'Up to 10 staff', 'Growth toolkit'] },
-              { name: 'Pro',     price: '₹4,999', tag: 'Chains', features: ['Everything in Growth', 'Multi-branch reports', 'Unlimited staff', '5,000 WhatsApp msgs', 'Priority support'] },
+              { name: 'Starter', price: '₹249',   tag: 'Solo salons',   features: ['Bookings + POS', '100 WhatsApp msgs', 'Up to 3 staff', 'Public booking widget'] },
+              { name: 'Growth',  price: '₹699',   tag: 'Most popular', highlight: true, features: ['Everything in Starter', 'Memberships & referrals', '500 WhatsApp msgs', 'Up to 10 staff', 'Growth toolkit'] },
+              { name: 'Pro',     price: '₹1,399', tag: 'Chains',        features: ['Everything in Growth', 'Multi-branch reports', 'Unlimited staff', '1,000 WhatsApp msgs', 'Priority support'] },
             ].map((p) => (
               <div key={p.name} className={`rounded-3xl p-6 ${p.highlight ? 'bg-charcoal text-white shadow-pop scale-[1.02]' : 'bg-cream border border-charcoal/5'}`}>
                 <div className={`text-xs font-semibold uppercase tracking-widest ${p.highlight ? 'text-brand-500' : 'text-brand-600'}`}>{p.tag}</div>
                 <div className="font-display font-black text-2xl mt-1">{p.name}</div>
                 <div className="mt-4 flex items-baseline gap-1">
                   <span className="font-display font-black text-4xl">{p.price}</span>
-                  <span className={`text-sm ${p.highlight ? 'text-white/60' : 'text-charcoal/60'}`}>/mo</span>
+                  <span className={`text-sm ${p.highlight ? 'text-white/60' : 'text-charcoal/60'}`}>/mo + GST</span>
                 </div>
                 <ul className="mt-5 space-y-2">
                   {p.features.map((f) => (
