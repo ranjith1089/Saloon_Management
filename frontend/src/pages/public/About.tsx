@@ -23,11 +23,11 @@ export default function About() {
       <section className="container-x pb-20">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="aspect-square rounded-3xl bg-gradient-to-br from-brand-100 via-cream to-brand-50 flex items-center justify-center relative overflow-hidden">
-            <div className="font-display font-black text-9xl text-brand-600 opacity-20">R</div>
+            <div className="font-display font-black text-9xl text-brand-600 opacity-20">P</div>
             <div className="absolute bottom-6 left-6 right-6 bg-white rounded-2xl p-4 shadow-pop">
               <div className="text-xs uppercase font-semibold text-brand-600 tracking-widest">Founder</div>
-              <div className="font-display font-black text-2xl mt-1">Ranjith Kumar R</div>
-              <div className="text-sm text-charcoal/60 mt-1">Aveon Infotech Private Limited</div>
+              <div className="font-display font-black text-2xl mt-1">Parvathi Gurusamy</div>
+              <div className="text-sm text-charcoal/60 mt-1">Founder of Aveon Infotech Private Limited</div>
             </div>
           </div>
           <div>
