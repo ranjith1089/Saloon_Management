@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MessageCircle, MapPin, Building2, Heart, Rocket, Users } from 'lucide-react';
-import SectionHeading from '@/components/SectionHeading';
+import SectionHeading from '@/components/public/SectionHeading';
 
 export default function About() {
   return (
@@ -88,10 +88,10 @@ export default function About() {
             small-and-medium Indian businesses.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm">
-            <a href="mailto:contact@aveoninfotech.com" className="btn-secondary">
+            <a href="mailto:contact@aveoninfotech.com" className="btn-hero-secondary">
               contact@aveoninfotech.com
             </a>
-            <a href="https://wa.me/918754006483" target="_blank" rel="noreferrer" className="btn-primary">
+            <a href="https://wa.me/918754006483" target="_blank" rel="noreferrer" className="btn-hero">
               <MessageCircle className="w-4 h-4" /> WhatsApp us
             </a>
           </div>

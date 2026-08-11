@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Scissors, Instagram, Facebook, Youtube, Mail, Phone } from 'lucide-react';
 
-export default function Footer() {
+export default function PublicFooter() {
   return (
     <footer className="bg-charcoal text-white/80">
       <div className="container-x py-14 grid grid-cols-1 md:grid-cols-5 gap-8">
@@ -28,8 +28,8 @@ export default function Footer() {
           <ul className="space-y-2 text-sm">
             <li><Link to="/features" className="hover:text-white">Features</Link></li>
             <li><Link to="/pricing" className="hover:text-white">Pricing</Link></li>
-            <li><a href="https://saloon-management-nine.vercel.app/register" className="hover:text-white">Free trial</a></li>
-            <li><a href="https://saloon-management-nine.vercel.app/login" className="hover:text-white">Login</a></li>
+            <li><Link to="/register" className="hover:text-white">Free trial</Link></li>
+            <li><Link to="/login" className="hover:text-white">Login</Link></li>
           </ul>
         </div>
 

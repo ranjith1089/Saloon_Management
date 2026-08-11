@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, X, Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
-import SectionHeading from '@/components/SectionHeading';
+import SectionHeading from '@/components/public/SectionHeading';
 
-const APP = 'https://saloon-management-nine.vercel.app';
+
 
 const CURRENCIES = {
   INR: { sym: '₹', starter: 999,  growth: 2499, pro: 4999, region: 'India' },
@@ -185,11 +185,11 @@ export default function Pricing() {
         <div className="rounded-3xl bg-gradient-to-br from-brand-600 to-brand-900 text-white p-10 sm:p-14 text-center">
           <Sparkles className="w-8 h-8 mx-auto mb-3" />
           <h2 className="h-display text-3xl sm:text-4xl">Still unsure? Talk to a human.</h2>
-          <p className="mt-3 text-white/80">Book a 15-minute demo. We\'ll answer every question you\'ve got.</p>
+          <p className="mt-3 text-white/80">Book a 15-minute demo. We'll answer every question you've got.</p>
           <div className="mt-6 flex justify-center gap-3 flex-wrap">
-            <a href={`${APP}/register`} className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full">
+            <Link to="/register" className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full">
               Start free trial <ArrowRight className="w-4 h-4 inline ml-1" />
-            </a>
+            </Link>
             <a href="https://wa.me/918754006483" target="_blank" rel="noreferrer" className="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold px-6 py-3 rounded-full">
               <MessageCircle className="w-4 h-4 inline mr-1" /> WhatsApp us
             </a>
@@ -222,12 +222,12 @@ function TierCard({ name, tag, price, suffix, desc, features, highlight = false 
           </li>
         ))}
       </ul>
-      <a
-        href={`${APP}/register`}
+      <Link
+        to="/register"
         className={`mt-6 text-center font-semibold py-3 rounded-full transition-all ${highlight ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-charcoal hover:bg-black text-white'}`}
       >
         Start free trial
-      </a>
+      </Link>
     </div>
   );
 }

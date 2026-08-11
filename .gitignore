@@ -50,3 +50,6 @@ coverage/
 # Cache
 .cache/
 .parcel-cache/
+
+# Claude Code session-local config
+.claude/

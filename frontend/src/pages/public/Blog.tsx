@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, ArrowRight } from 'lucide-react';
 import { POSTS } from '@/content/posts';
-import SectionHeading from '@/components/SectionHeading';
+import SectionHeading from '@/components/public/SectionHeading';
 
 const CATEGORIES = ['All', 'Growth', 'Running a salon', 'Product'];
 

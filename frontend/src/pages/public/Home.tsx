@@ -5,10 +5,8 @@ import {
   ArrowRight, Play, MessageCircle, Calendar, ShoppingBag, Users,
   Crown, TrendingUp, Star, Zap, Sparkles, CheckCircle2,
 } from 'lucide-react';
-import SectionHeading from '@/components/SectionHeading';
-import { DashboardMock, BookingsMock, POSMock, WhatsAppMock, ProductsMock } from '@/components/DashboardMock';
-
-const APP = 'https://saloon-management-nine.vercel.app';
+import SectionHeading from '@/components/public/SectionHeading';
+import { DashboardMock, BookingsMock, POSMock, WhatsAppMock, ProductsMock } from '@/components/public/DashboardMock';
 
 export default function Home() {
   return (
@@ -29,10 +27,10 @@ export default function Home() {
               for your Instagram bio — all in one place. Built for Indian salons.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a href={`${APP}/register`} className="btn-primary">
+              <Link to="/register" className="btn-hero">
                 Start 14-day free trial <ArrowRight className="w-4 h-4" />
-              </a>
-              <Link to="/features" className="btn-secondary">
+              </Link>
+              <Link to="/features" className="btn-hero-secondary">
                 <Play className="w-4 h-4" /> See it in action
               </Link>
             </div>
@@ -122,7 +120,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* PRODUCT SHOWCASE */}
       <ProductShowcase />
 
       {/* HOW IT WORKS */}
@@ -224,7 +221,7 @@ export default function Home() {
             ))}
           </div>
           <div className="text-center mt-8">
-            <Link to="/pricing" className="btn-secondary">See full comparison <ArrowRight className="w-4 h-4" /></Link>
+            <Link to="/pricing" className="btn-hero-secondary">See full comparison <ArrowRight className="w-4 h-4" /></Link>
           </div>
         </div>
       </section>
@@ -239,9 +236,9 @@ export default function Home() {
               14-day free trial. Setup takes ten minutes. Your first WhatsApp confirmation goes out today.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <a href={`${APP}/register`} className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full shadow-2xl">
+              <Link to="/register" className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full shadow-2xl">
                 Start free trial
-              </a>
+              </Link>
               <Link to="/contact" className="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold px-6 py-3 rounded-full">
                 Book a demo
               </Link>
@@ -253,8 +250,6 @@ export default function Home() {
   );
 }
 
-// A tabbed showcase of the actual product UI — every "screenshot" is a
-// live CSS component so it stays in sync as the product evolves.
 function ProductShowcase() {
   const TABS = [
     { key: 'dashboard', label: 'Dashboard',  Comp: DashboardMock,  desc: 'Every KPI that actually matters — appointments, revenue, product sales, commissions, customers.' },
@@ -295,7 +290,6 @@ function ProductShowcase() {
           className="max-w-4xl mx-auto"
         >
           <div className="rounded-3xl bg-gradient-to-br from-brand-50 via-cream to-brand-50 p-4 sm:p-8 shadow-pop">
-            {/* Browser chrome */}
             <div className="flex items-center gap-1.5 mb-3 px-2">
               <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
               <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />

@@ -26,7 +26,7 @@ export default function Contact() {
           Say hello. <span className="text-brand-600">We reply in 2 hours.</span>
         </h1>
         <p className="mt-6 text-lg text-charcoal/70 max-w-2xl mx-auto">
-          Prefer WhatsApp? Call? Email? Take your pick — we\'re on all of them.
+          Prefer WhatsApp? Call? Email? Take your pick — we're on all of them.
         </p>
       </section>
 
@@ -40,8 +40,8 @@ export default function Contact() {
                   <CheckCircle2 className="w-8 h-8 text-green-600" />
                 </div>
                 <h2 className="font-display font-black text-2xl">Message on its way!</h2>
-                <p className="text-charcoal/70 mt-2">We\'ll reply within 2 hours during business hours (Mon–Sat, 10 AM – 8 PM IST).</p>
-                <button onClick={() => { setSent(false); setForm({ name: '', email: '', phone: '', salon: '', message: '' }); }} className="btn-secondary mt-6 text-sm">
+                <p className="text-charcoal/70 mt-2">We'll reply within 2 hours during business hours (Mon–Sat, 10 AM – 8 PM IST).</p>
+                <button onClick={() => { setSent(false); setForm({ name: '', email: '', phone: '', salon: '', message: '' }); }} className="btn-hero-secondary mt-6 text-sm">
                   Send another
                 </button>
               </div>
@@ -67,9 +67,9 @@ export default function Contact() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-charcoal mb-1">Message *</label>
-                  <textarea required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={5} className="w-full px-4 py-3 border border-charcoal/15 rounded-xl focus:ring-2 focus:ring-brand-600 focus:border-transparent" placeholder="Tell us about your salon and what you\'re looking for." />
+                  <textarea required value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={5} className="w-full px-4 py-3 border border-charcoal/15 rounded-xl focus:ring-2 focus:ring-brand-600 focus:border-transparent" placeholder="Tell us about your salon and what you're looking for." />
                 </div>
-                <button type="submit" disabled={sending} className="btn-primary w-full sm:w-auto">
+                <button type="submit" disabled={sending} className="btn-hero w-full sm:w-auto">
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   Send message
                 </button>

@@ -3,9 +3,9 @@ import {
   Calendar, ShoppingBag, Users, Crown, TrendingUp, MessageCircle,
   Link2, Gift, Package, Building2, BarChart3, ShieldCheck, ArrowRight, CheckCircle2,
 } from 'lucide-react';
-import SectionHeading from '@/components/SectionHeading';
+import SectionHeading from '@/components/public/SectionHeading';
 
-const APP = 'https://saloon-management-nine.vercel.app';
+
 
 const GROUPS = [
   {
@@ -144,10 +144,10 @@ export default function Features() {
           <h2 className="h-display text-3xl sm:text-4xl">See it running on your own salon.</h2>
           <p className="mt-3 text-white/70">14-day free trial. No credit card. Live in ten minutes.</p>
           <div className="mt-6 flex justify-center gap-3">
-            <a href={`${APP}/register`} className="btn-primary">
+            <Link to="/register" className="btn-hero">
               Start free trial <ArrowRight className="w-4 h-4" />
-            </a>
-            <Link to="/pricing" className="btn-secondary">See pricing</Link>
+            </Link>
+            <Link to="/pricing" className="btn-hero-secondary">See pricing</Link>
           </div>
         </div>
       </section>

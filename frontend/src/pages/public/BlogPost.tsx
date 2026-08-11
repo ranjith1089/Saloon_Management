@@ -73,7 +73,7 @@ export default function BlogPost() {
             <div className="font-semibold">{post.author}</div>
             <div className="text-sm text-charcoal/60">Founder · Aveon Infotech</div>
           </div>
-          <a href="https://wa.me/918754006483" target="_blank" rel="noreferrer" className="ml-auto btn-secondary text-sm">
+          <a href="https://wa.me/918754006483" target="_blank" rel="noreferrer" className="ml-auto btn-hero-secondary text-sm">
             <MessageCircle className="w-4 h-4" /> Chat
           </a>
         </div>

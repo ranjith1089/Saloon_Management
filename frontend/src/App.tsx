@@ -32,7 +32,14 @@ import MyProfile from '@/pages/my/MyProfile';
 import MyMembership from '@/pages/my/MyMembership';
 import MyHistory from '@/pages/my/MyHistory';
 import PublicBooking from '@/pages/PublicBooking';
-import PublicHome from '@/pages/PublicHome';
+import PublicLayout from '@/layouts/PublicLayout';
+import PublicHome from '@/pages/public/Home';
+import PublicAbout from '@/pages/public/About';
+import PublicFeatures from '@/pages/public/Features';
+import PublicPricing from '@/pages/public/Pricing';
+import PublicBlog from '@/pages/public/Blog';
+import PublicBlogPost from '@/pages/public/BlogPost';
+import PublicContact from '@/pages/public/Contact';
 import Sales from '@/pages/Sales';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
@@ -42,8 +49,18 @@ const ADMIN_ONLY = ['ADMIN'] as const;
 export default function App() {
   return (
     <Routes>
-      {/* Public routes — no auth required */}
-      <Route path="/" element={<PublicHome />} />
+      {/* Public marketing pages — wrapped in PublicLayout (nav + footer) */}
+      <Route element={<PublicLayout />}>
+        <Route path="/"         element={<PublicHome />} />
+        <Route path="/about"    element={<PublicAbout />} />
+        <Route path="/features" element={<PublicFeatures />} />
+        <Route path="/pricing"  element={<PublicPricing />} />
+        <Route path="/blog"     element={<PublicBlog />} />
+        <Route path="/blog/:slug" element={<PublicBlogPost />} />
+        <Route path="/contact"  element={<PublicContact />} />
+      </Route>
+
+      {/* Auth screens — full-page, no layout */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/book/:branchId" element={<PublicBooking />} />
