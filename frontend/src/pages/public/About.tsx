@@ -33,20 +33,23 @@ export default function About() {
           <div>
             <div className="eyebrow mb-3">Our story</div>
             <h2 className="h-display text-3xl sm:text-4xl mb-5">
-              Every salon owner I met was drowning in WhatsApp.
+              Founder-led. Product-driven. Built to last.
             </h2>
             <div className="space-y-4 text-charcoal/80 leading-relaxed">
               <p>
-                It started with a family salon. Bookings on WhatsApp. A paper diary. Half the customers forgot to show up. The other half showed up when we didn't expect them.
+                Parvathi Gurusamy is the Founder &amp; CEO of <strong>Aveon Infotech Pvt. Ltd.</strong> and <strong>iResponsive Solutions</strong>, focused on building technology-driven businesses and innovative digital solutions.
               </p>
               <p>
-                We looked at existing salon software and found two categories: enterprise tools built for chains with 50 branches, priced at ₹15,000/month; or basic diary apps that couldn't handle a walk-in without breaking.
+                Driving innovation across Enterprise Software, Education Technology, ERP Solutions, Digital Transformation, Supply Chain, E-Commerce, Healthcare, and Custom Software Development.
               </p>
               <p>
-                Neither fit the salon that mattered most — the neighbourhood salon in Coimbatore or Nashik doing ₹3–8 lakh a month, with 3–10 staff, wanting to grow without hiring a receptionist.
+                Leading teams to transform complex business requirements into scalable, practical, and technology-driven solutions for organizations across India and international markets.
               </p>
               <p>
-                So we built Salon. Priced for real Indian salons. Built for the way they actually operate.
+                Passionate about entrepreneurship, technology innovation, business transformation, team building, and creating long-term social and economic impact through technology.
+              </p>
+              <p className="pt-2 font-display font-black text-xl text-charcoal">
+                Founder. Builder. Innovator. Technology Entrepreneur.
               </p>
             </div>
           </div>
