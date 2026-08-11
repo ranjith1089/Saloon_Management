@@ -1,13 +1,18 @@
 import { Link } from 'react-router-dom';
 import {
   Calendar, ShoppingBag, Users, Crown, TrendingUp, MessageCircle,
-  Link2, Gift, Package, Building2, BarChart3, ShieldCheck, ArrowRight, CheckCircle2,
+  Link2, Gift, Package, Building2, BarChart3, ShieldCheck, ArrowRight, CheckCircle2, Bot,
 } from 'lucide-react';
 import SectionHeading from '@/components/public/SectionHeading';
-
-
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const GROUPS = [
+  {
+    id: 'ai', icon: Bot, title: 'AI Search & Insights',
+    tag: 'New · AI',
+    desc: 'Ask anything about your salon in plain English — "Who spent the most this month?", "Which staff has the best rebook rate?", "What time slot is under-booked on Sundays?" — and get instant, chart-backed answers plus one-click follow-up actions.',
+    points: ['Natural-language queries in English, Hindi & Tamil', 'AI writes charts on the fly', 'Suggested next actions (send WA, offer discount)', 'Learns from your history — recommendations get sharper'],
+  },
   {
     id: 'bookings', icon: Calendar, title: 'Bookings that actually work',
     tag: 'Core',
@@ -83,6 +88,11 @@ const GROUPS = [
 ];
 
 export default function Features() {
+  usePageMeta({
+    title: 'Features — Salon & SPA Management Software with AI Search',
+    description: 'Every feature: AI Search, bookings, POS, memberships, WhatsApp automation, referrals, growth toolkit, multi-branch reports, roles & permissions. Built for salons and spas.',
+    keywords: 'Salon Management features, SPA Management features, AI salon software, salon POS, WhatsApp automation, salon booking widget, membership management, salon staff scheduling',
+  });
   return (
     <>
       {/* Hero */}

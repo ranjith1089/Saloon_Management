@@ -3,12 +3,19 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowRight, Play, MessageCircle, Calendar, ShoppingBag, Users,
-  Crown, TrendingUp, Star, Zap, Sparkles, CheckCircle2,
+  Crown, TrendingUp, Star, Zap, Sparkles, CheckCircle2, Bot,
 } from 'lucide-react';
 import SectionHeading from '@/components/public/SectionHeading';
 import { DashboardMock, BookingsMock, POSMock, WhatsAppMock, ProductsMock } from '@/components/public/DashboardMock';
+import AISearchMock from '@/components/public/AISearchMock';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 export default function Home() {
+  usePageMeta({
+    title: 'Salon & SPA Management Software with AI Search | Bookings, POS, WhatsApp',
+    description: 'Modern Salon and SPA Management software — bookings, POS, memberships, WhatsApp automation and AI Search for Indian salons and spas. From ₹249/month.',
+    keywords: 'Salon Management, Saloon Management, SPA Management, Salon and SPA Management, AI salon software, salon booking software, salon POS, WhatsApp booking, beauty parlour software, salon software India',
+  });
   return (
     <>
       {/* HERO */}
@@ -17,14 +24,15 @@ export default function Home() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
             <div className="inline-flex items-center gap-2 bg-white border border-charcoal/10 rounded-full px-3 py-1 text-xs font-semibold text-brand-600 shadow-soft mb-6">
               <Sparkles className="w-3.5 h-3.5" />
-              Now with WhatsApp Cloud API
+              New · AI Search &amp; WhatsApp Cloud API
             </div>
             <h1 className="h-display text-5xl sm:text-6xl md:text-7xl leading-[0.9]">
-              The salon software that <span className="text-brand-600">fills your chairs</span>.
+              The salon &amp; spa software that <span className="text-brand-600">fills your chairs</span>.
             </h1>
             <p className="mt-6 text-lg text-charcoal/70 max-w-xl leading-relaxed">
-              Bookings, POS, memberships, WhatsApp reminders, and a booking widget
-              for your Instagram bio — all in one place. Built for Indian salons.
+              Bookings, POS, memberships, WhatsApp reminders, AI-powered insights
+              and a booking widget for your Instagram bio — one app for salons and spas.
+              Built for India.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/register" className="btn-hero">
@@ -109,10 +117,11 @@ export default function Home() {
             sub="Stop stitching together 5 tools. Salon replaces your diary, POS, marketing, and CRM in a single, gorgeous interface your staff will actually use."
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <BentoCard span="md:col-span-2" icon={MessageCircle} title="WhatsApp automation" tag="Cloud API" desc="Booking confirmations, reminders, birthday wishes and win-back messages — sent automatically via the official WhatsApp Cloud API." />
+            <BentoCard span="md:col-span-2" icon={Bot} title="AI Search & Insights" tag="New · AI" desc="Ask anything in plain English — 'Who spent the most last month?', 'Which service is trending?', 'What time slot is under-booked?' — get instant, chart-backed answers." />
+            <BentoCard icon={MessageCircle} title="WhatsApp automation" tag="Cloud API" desc="Booking confirmations, reminders, birthday wishes, all sent via the official WhatsApp Cloud API." />
             <BentoCard icon={Calendar} title="Smart bookings" desc="Table, calendar & staff-grid views. Drag to reschedule. Instant conflict detection." />
             <BentoCard icon={ShoppingBag} title="Unified POS" desc="Sell products and services on one ticket. Tap-to-add tiles. Printable receipt." />
-            <BentoCard icon={Zap} title="Public booking widget" desc="Share on Instagram bio. Customers book without an account. Bookings land in your dashboard." />
+            <BentoCard icon={Zap} title="Public booking widget" desc="Share on Instagram bio. Customers book without an account." />
             <BentoCard icon={Crown} title="Memberships" desc="Plan builder, member pricing, auto-applied at booking and POS." />
             <BentoCard span="md:col-span-2" icon={TrendingUp} title="Growth toolkit" tag="Built-in" desc="Rebook lapsed customers, win back the ones who ghosted, and celebrate birthdays — with one click, over WhatsApp." />
             <BentoCard icon={Users} title="Staff & payouts" desc="Monthly revenue targets, target-aware commission, payouts calculated automatically." />
@@ -253,6 +262,7 @@ export default function Home() {
 function ProductShowcase() {
   const TABS = [
     { key: 'dashboard', label: 'Dashboard',  Comp: DashboardMock,  desc: 'Every KPI that actually matters — appointments, revenue, product sales, commissions, customers.' },
+    { key: 'ai',        label: 'AI Search',  Comp: AISearchMock,   desc: 'Ask questions about your salon in plain English. AI writes charts, ranks customers, spots trends — no dashboards required.' },
     { key: 'bookings',  label: 'Bookings',   Comp: BookingsMock,   desc: 'Staff-grid, table, or calendar view. Drag to reschedule. Instant conflict detection.' },
     { key: 'pos',       label: 'POS',        Comp: POSMock,        desc: 'Products and services on one ticket. Quick-pay buttons for Cash / UPI / Card. GST handled server-side.' },
     { key: 'whatsapp',  label: 'WhatsApp',   Comp: WhatsAppMock,   desc: 'Automated confirmations, reminders, and win-back messages via the official WhatsApp Cloud API.' },

@@ -3,7 +3,14 @@ import { motion } from 'framer-motion';
 import { MessageCircle, MapPin, Building2, Heart, Rocket, Users } from 'lucide-react';
 import SectionHeading from '@/components/public/SectionHeading';
 
+import { usePageMeta } from '@/hooks/usePageMeta';
+
 export default function About() {
+  usePageMeta({
+    title: 'About — Aveon Infotech · Salon & SPA Management',
+    description: 'Aveon Infotech builds modern Salon and SPA Management software from Chennai. Founded by Parvathi Gurusamy. Serving Indian salons and international markets.',
+    keywords: 'Aveon Infotech, salon software company India, SPA management company, Parvathi Gurusamy, salon software Chennai',
+  });
   return (
     <>
       {/* Hero */}

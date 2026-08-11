@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://saloon-management-nine.vercel.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/features</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/pricing</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/about</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/blog</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/blog/reduce-salon-no-shows-with-whatsapp</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/blog/kpis-every-salon-owner-should-track</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/blog/instagram-to-bookings</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/blog/salon-pos-vs-generic-pos</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/blog/gst-for-salons-made-simple</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://saloon-management-nine.vercel.app/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+</urlset>

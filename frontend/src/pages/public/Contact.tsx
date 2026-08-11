@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import { Mail, Phone, MessageCircle, MapPin, Send, Loader2, CheckCircle2 } from 'lucide-react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 export default function Contact() {
+  usePageMeta({
+    title: 'Contact — Salon & SPA Management by Aveon Infotech',
+    description: 'Talk to us on WhatsApp, email or phone. 2-hour response during business hours. Chennai, India.',
+    keywords: 'contact salon software, aveon infotech contact, saloon software support India',
+  });
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [form, setForm] = useState({ name: '', email: '', phone: '', salon: '', message: '' });

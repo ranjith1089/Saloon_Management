@@ -3,10 +3,16 @@ import { Link } from 'react-router-dom';
 import { Clock, ArrowRight } from 'lucide-react';
 import { POSTS } from '@/content/posts';
 import SectionHeading from '@/components/public/SectionHeading';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 const CATEGORIES = ['All', 'Growth', 'Running a salon', 'Product'];
 
 export default function Blog() {
+  usePageMeta({
+    title: 'Blog — Salon & SPA Growth Playbooks',
+    description: 'Practical playbooks for Indian salons and spas — WhatsApp marketing, KPIs, Instagram funnels, GST, POS. Written for real salon owners.',
+    keywords: 'salon marketing blog, saloon growth tips, salon whatsapp marketing, salon KPI tracking, spa business tips',
+  });
   const [cat, setCat] = useState('All');
   const filtered = cat === 'All' ? POSTS : POSTS.filter((p) => p.category === cat);
   const [featured, ...rest] = filtered;

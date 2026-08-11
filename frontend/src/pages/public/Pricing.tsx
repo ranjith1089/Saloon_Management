@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, X, Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
 import SectionHeading from '@/components/public/SectionHeading';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 
 
@@ -42,6 +43,11 @@ const FAQ = [
 ];
 
 export default function Pricing() {
+  usePageMeta({
+    title: 'Pricing — Salon & SPA Management from ₹249/mo',
+    description: 'Simple pricing for Salon and SPA Management software. Starter ₹249, Growth ₹699, Pro ₹1,399 — all + GST. 14-day free trial, no credit card. Available in INR, USD, GBP, AED.',
+    keywords: 'Salon software pricing, saloon software pricing India, SPA management pricing, salon software cost, cheap salon software',
+  });
   const [ccy, setCcy] = useState<Ccy>('INR');
   const [annual, setAnnual] = useState(false);
   const c = CURRENCIES[ccy];

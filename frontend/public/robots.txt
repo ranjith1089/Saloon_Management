@@ -1,0 +1,29 @@
+User-agent: *
+Allow: /
+
+# Block the authed app tree from indexing — those pages 302 to /login for
+# anonymous crawlers and add no SEO value.
+Disallow: /dashboard
+Disallow: /bookings
+Disallow: /branches
+Disallow: /services
+Disallow: /staff
+Disallow: /customers
+Disallow: /earnings
+Disallow: /payouts
+Disallow: /products
+Disallow: /sales
+Disallow: /memberships
+Disallow: /coupons
+Disallow: /reviews
+Disallow: /reports
+Disallow: /notifications
+Disallow: /settings
+Disallow: /growth
+Disallow: /referrals
+Disallow: /notification-templates
+Disallow: /access-control
+Disallow: /inquiries
+Disallow: /my/
+
+Sitemap: https://saloon-management-nine.vercel.app/sitemap.xml

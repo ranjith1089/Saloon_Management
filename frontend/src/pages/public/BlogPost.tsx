@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
 import { Clock, ArrowLeft, MessageCircle } from 'lucide-react';
 import { POSTS } from '@/content/posts';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 // Minimal markdown-ish renderer — handles ##, ###, bold, and paragraphs.
 function renderBody(body: string) {
@@ -36,6 +37,11 @@ export default function BlogPost() {
   const post = POSTS.find((p) => p.slug === slug);
 
   useEffect(() => { window.scrollTo(0, 0); }, [slug]);
+  usePageMeta({
+    title: post ? `${post.title} — Salon & SPA Blog` : 'Salon & SPA Blog',
+    description: post?.excerpt || 'Practical playbooks for Indian salons and spas.',
+    keywords: post ? `${post.category}, salon software, salon tips, ${post.title.toLowerCase()}` : undefined,
+  });
 
   if (!post) return <Navigate to="/blog" replace />;
 
