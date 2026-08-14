@@ -109,12 +109,28 @@ export default function Contact() {
               href="tel:+918754006483"
               color="bg-brand-600"
             />
-            <div className="card-soft p-5">
-              <MapPin className="w-6 h-6 text-brand-600 mb-2" />
-              <div className="font-semibold">Chennai, India</div>
-              <div className="text-sm text-charcoal/60 mt-1">
-                Aveon Infotech Private Limited
+            <div className="card-soft overflow-hidden">
+              <div className="p-5 pb-3">
+                <MapPin className="w-6 h-6 text-brand-600 mb-2" />
+                <div className="font-semibold">Chennai, India</div>
+                <div className="text-sm text-charcoal/60 mt-1">
+                  Aveon Infotech Private Limited
+                </div>
               </div>
+              {/* Chennai map — generic centre marker, no API key needed */}
+              <iframe
+                title="Chennai — Aveon Infotech location"
+                src="https://www.google.com/maps?q=Chennai,India&z=11&output=embed"
+                width="100%"
+                height="180"
+                style={{ border: 0 }}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Response time &lt; 2 hours (Mon–Sat, 10 AM–8 PM IST)
             </div>
           </div>
         </div>

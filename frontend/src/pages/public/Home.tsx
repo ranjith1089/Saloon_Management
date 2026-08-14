@@ -8,6 +8,7 @@ import {
 import SectionHeading from '@/components/public/SectionHeading';
 import { DashboardMock, BookingsMock, POSMock, WhatsAppMock, ProductsMock } from '@/components/public/DashboardMock';
 import AISearchMock from '@/components/public/AISearchMock';
+import AnimatedNumber from '@/components/public/AnimatedNumber';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
 export default function Home() {
@@ -49,9 +50,19 @@ export default function Home() {
 
           <motion.div
             initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
-            className="relative"
+            className="relative [perspective:1600px]"
           >
-            <div className="rounded-3xl overflow-hidden shadow-pop border-8 border-white bg-white">
+            {/* Subtle 3D tilt on the device frame — makes the dashboard feel real */}
+            <div className="rounded-3xl overflow-hidden shadow-pop border-8 border-white bg-white [transform:rotateY(-4deg)_rotateX(2deg)] hover:[transform:rotateY(0deg)_rotateX(0deg)] transition-transform duration-500 ease-out">
+              {/* Browser chrome — tiny bar so it reads as an app screenshot */}
+              <div className="flex items-center gap-1.5 px-3 py-2 bg-cream border-b border-charcoal/5">
+                <div className="w-2 h-2 rounded-full bg-red-400" />
+                <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                <div className="w-2 h-2 rounded-full bg-green-400" />
+                <div className="ml-2 h-4 flex-1 bg-white rounded-md text-[9px] text-charcoal/40 flex items-center px-2 max-w-[220px]">
+                  salon.aveoninfotech.com
+                </div>
+              </div>
               <DashboardMock />
             </div>
             <div className="absolute -top-4 -right-4 bg-white rounded-2xl px-4 py-3 shadow-pop flex items-center gap-2 border border-charcoal/5">
@@ -74,15 +85,29 @@ export default function Home() {
         </div>
       </section>
 
-      {/* TRUST BAR */}
+      {/* TRUST BAR — logo chips (name + first-letter avatar) */}
       <section className="border-y border-charcoal/5 bg-white">
-        <div className="container-x py-8 flex flex-wrap items-center justify-around gap-6 text-charcoal/40 font-display font-black text-lg sm:text-xl">
-          <span>Trendy Trims</span>
-          <span>Glow Studio</span>
-          <span>Urban Cuts</span>
-          <span>Silk & Style</span>
-          <span>The Grooming Co.</span>
-          <span>Bloom Salon</span>
+        <div className="container-x py-8">
+          <p className="text-center text-[10px] uppercase tracking-widest text-charcoal/40 font-semibold mb-5">
+            Trusted by growing salons across India
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {[
+              { name: 'Trendy Trims',    color: 'bg-brand-100 text-brand-700' },
+              { name: 'Glow Studio',     color: 'bg-purple-100 text-purple-700' },
+              { name: 'Urban Cuts',      color: 'bg-blue-100 text-blue-700' },
+              { name: 'Silk & Style',    color: 'bg-pink-100 text-pink-700' },
+              { name: 'The Grooming Co.', color: 'bg-amber-100 text-amber-700' },
+              { name: 'Bloom Salon',     color: 'bg-green-100 text-green-700' },
+            ].map((s) => (
+              <div key={s.name} className="inline-flex items-center gap-2 bg-cream border border-charcoal/5 rounded-full pl-1 pr-3 py-1">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${s.color}`}>
+                  {s.name.slice(0, 1)}
+                </span>
+                <span className="text-xs font-semibold text-charcoal/70">{s.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -154,7 +179,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NUMBERS */}
+      {/* NUMBERS — animated count-up on scroll */}
       <section className="bg-charcoal text-white">
         <div className="container-x py-16 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
@@ -164,7 +189,9 @@ export default function Home() {
             { n: '₹0',       l: 'Setup fee, ever' },
           ].map((s) => (
             <div key={s.l}>
-              <div className="font-display font-black text-4xl md:text-5xl text-brand-500">{s.n}</div>
+              <div className="font-display font-black text-4xl md:text-5xl text-brand-500 tabular-nums">
+                <AnimatedNumber value={s.n} />
+              </div>
               <div className="text-white/60 text-sm mt-2">{s.l}</div>
             </div>
           ))}
@@ -178,23 +205,28 @@ export default function Home() {
           title={<>Loved by salon owners who <span className="text-brand-600">actually run salons</span>.</>}
         />
         <div className="grid md:grid-cols-3 gap-5">
-          {TESTIMONIALS.map((t) => (
-            <figure key={t.name} className="card-soft p-6 flex flex-col">
-              <div className="flex gap-1 text-amber-400 mb-3">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
-              </div>
-              <blockquote className="text-charcoal/80 flex-1">"{t.quote}"</blockquote>
-              <figcaption className="mt-5 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold">
-                  {t.name.slice(0, 1)}
+          {TESTIMONIALS.map((t, i) => {
+            const colors = ['bg-brand-100 text-brand-700', 'bg-purple-100 text-purple-700', 'bg-green-100 text-green-700'];
+            return (
+              <figure key={t.name} className="card-soft p-6 flex flex-col relative overflow-hidden hover:-translate-y-1 hover:shadow-pop transition-all">
+                {/* Big decorative quote mark */}
+                <div className="absolute top-3 right-4 font-display font-black text-6xl text-brand-100 leading-none pointer-events-none select-none">"</div>
+                <div className="flex gap-1 text-amber-400 mb-3">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
                 </div>
-                <div>
-                  <div className="font-semibold text-sm">{t.name}</div>
-                  <div className="text-xs text-charcoal/60">{t.role}</div>
-                </div>
-              </figcaption>
-            </figure>
-          ))}
+                <blockquote className="text-charcoal/80 flex-1 relative">{t.quote}</blockquote>
+                <figcaption className="mt-5 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${colors[i % colors.length]}`}>
+                    {t.name.slice(0, 1)}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">{t.name}</div>
+                    <div className="text-xs text-charcoal/60">{t.role}</div>
+                  </div>
+                </figcaption>
+              </figure>
+            );
+          })}
         </div>
       </section>
 

@@ -238,25 +238,30 @@ function AdminHome({ data }: { data: any }) {
   const upcomingBookings = data?.upcomingBookings || [];
   const topServices = data?.topServices || [];
 
+  // Compact currency helper for narrow cards — full number in the tooltip.
+  const compactMoney = (n: number) => {
+    if (n >= 10_000_000) return `₹${(n / 10_000_000).toFixed(1)}Cr`;
+    if (n >= 100_000)    return `₹${(n / 100_000).toFixed(1)}L`;
+    if (n >= 1_000)      return `₹${(n / 1_000).toFixed(1)}K`;
+    return `₹${Number(n).toLocaleString('en-IN')}`;
+  };
+  const fullMoney = (n: number) => `₹${Number(n).toLocaleString('en-IN')}`;
+
   const statCards = [
-    { label: 'Appointments', value: metrics.totalAppointments || 0, icon: Calendar, color: 'blue' },
-    { label: 'Service Revenue', value: `₹${Number(metrics.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'green' },
-    {
-      label: 'Product Revenue',
-      value: `₹${Number(metrics.productRevenue || 0).toLocaleString()}`,
-      icon: ShoppingBag, color: 'pink',
-      sub: `${metrics.productSales || 0} sales`,
-    },
-    { label: 'Sales Commissions', value: `₹${Number(metrics.salesCommissions || 0).toLocaleString()}`, icon: TrendingUp, color: 'purple' },
-    { label: 'Customers', value: metrics.totalCustomers || 0, icon: Users, color: 'orange' },
+    { label: 'Appointments',   value: String(metrics.totalAppointments || 0), full: String(metrics.totalAppointments || 0), icon: Calendar, color: 'blue',   sub: 'This month' },
+    { label: 'Service Revenue', value: compactMoney(Number(metrics.totalRevenue || 0)),  full: fullMoney(Number(metrics.totalRevenue || 0)),  icon: DollarSign,  color: 'green',  sub: 'Services + walk-ins' },
+    { label: 'Product Revenue', value: compactMoney(Number(metrics.productRevenue || 0)), full: fullMoney(Number(metrics.productRevenue || 0)), icon: ShoppingBag, color: 'pink',   sub: `${metrics.productSales || 0} sales` },
+    { label: 'Commissions',     value: compactMoney(Number(metrics.salesCommissions || 0)), full: fullMoney(Number(metrics.salesCommissions || 0)), icon: TrendingUp, color: 'purple', sub: 'Payable to staff' },
+    { label: 'Customers',       value: String(metrics.totalCustomers || 0), full: String(metrics.totalCustomers || 0), icon: Users, color: 'orange', sub: 'Registered total' },
   ];
 
-  const colorClasses: Record<string, string> = {
-    blue: 'bg-blue-100 text-blue-600',
-    green: 'bg-green-100 text-green-600',
-    purple: 'bg-purple-100 text-purple-600',
-    orange: 'bg-orange-100 text-orange-600',
-    pink: 'bg-pink-100 text-pink-600',
+  // Colored accent bar per card — top-of-card 2px strip for scannability.
+  const colorClasses: Record<string, { badge: string; bar: string }> = {
+    blue:   { badge: 'bg-blue-100 text-blue-600',     bar: 'from-blue-400 to-blue-600' },
+    green:  { badge: 'bg-green-100 text-green-600',   bar: 'from-green-400 to-green-600' },
+    purple: { badge: 'bg-purple-100 text-purple-600', bar: 'from-purple-400 to-purple-600' },
+    orange: { badge: 'bg-orange-100 text-orange-600', bar: 'from-orange-400 to-orange-600' },
+    pink:   { badge: 'bg-pink-100 text-pink-600',     bar: 'from-pink-400 to-pink-600' },
   };
 
   return (
@@ -267,22 +272,35 @@ function AdminHome({ data }: { data: any }) {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {statCards.map((stat) => (
-          <div key={stat.label} className="card !p-3 sm:!p-4 min-w-0">
-            {/* Label + tiny icon badge on the same row so the number owns the
-                width below and never wraps. Icon shrinks on tighter widths. */}
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-xs sm:text-sm text-gray-500 truncate">{stat.label}</p>
-              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClasses[stat.color]}`}>
-                <stat.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        {statCards.map((stat) => {
+          const c = colorClasses[stat.color];
+          return (
+            <div
+              key={stat.label}
+              className="card !p-0 min-w-0 min-h-[120px] flex flex-col justify-between overflow-hidden relative group hover:shadow-md transition-shadow"
+            >
+              {/* Gradient accent bar — subtle category tint */}
+              <div className={`h-1 bg-gradient-to-r ${c.bar}`} />
+              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs sm:text-sm text-gray-500 truncate leading-tight">{stat.label}</p>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${c.badge}`}>
+                    <stat.icon className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <p
+                    className="text-xl sm:text-2xl font-bold tabular-nums whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                    title={stat.full}
+                  >
+                    {stat.value}
+                  </p>
+                  <p className="text-[10px] sm:text-xs text-gray-400 mt-1 truncate">{stat.sub}</p>
+                </div>
               </div>
             </div>
-            <p className="text-lg sm:text-xl xl:text-2xl font-bold mt-1 tabular-nums whitespace-nowrap overflow-hidden text-ellipsis" title={String(stat.value)}>
-              {stat.value}
-            </p>
-            {(stat as any).sub && <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 truncate">{(stat as any).sub}</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="card">

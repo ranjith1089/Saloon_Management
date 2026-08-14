@@ -210,11 +210,20 @@ export default function Pricing() {
 
 function TierCard({ name, tag, price, suffix, desc, features, highlight = false }: any) {
   return (
-    <div className={`rounded-3xl p-6 flex flex-col ${highlight ? 'bg-charcoal text-white shadow-pop scale-[1.03] relative' : 'bg-white border border-charcoal/10 shadow-soft'}`}>
+    <div className={`rounded-3xl p-6 flex flex-col relative ${highlight ? 'bg-charcoal text-white shadow-pop scale-[1.03] ring-2 ring-brand-500/50' : 'bg-white border border-charcoal/10 shadow-soft'}`}>
       {highlight && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-          Most Popular
-        </div>
+        <>
+          {/* Diagonal corner ribbon */}
+          <div className="absolute top-0 right-0 h-24 w-24 overflow-hidden pointer-events-none">
+            <div className="absolute top-[18px] right-[-32px] w-32 rotate-45 bg-gradient-to-r from-brand-500 to-brand-700 text-white text-[9px] font-bold uppercase tracking-widest text-center py-1 shadow-lg">
+              Popular
+            </div>
+          </div>
+          {/* Softer above-card pill */}
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-brand-600 border border-brand-200 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-soft">
+            Most Popular
+          </div>
+        </>
       )}
       <div className={`text-xs font-semibold uppercase tracking-widest ${highlight ? 'text-brand-500' : 'text-brand-600'}`}>{tag}</div>
       <div className="font-display font-black text-3xl mt-1">{name}</div>

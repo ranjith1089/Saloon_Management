@@ -1,9 +1,48 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Scissors, Instagram, Facebook, Youtube, Mail, Phone } from 'lucide-react';
+import { Scissors, Instagram, Facebook, Youtube, Mail, Phone, Send, CheckCircle2 } from 'lucide-react';
 
 export default function PublicFooter() {
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+  const subscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.includes('@')) return;
+    // MVP: mailto so we capture the lead without a backend endpoint
+    window.location.href = `mailto:contact@aveoninfotech.com?subject=Newsletter signup&body=Please add me to the salon growth tips newsletter: ${email}`;
+    setSubscribed(true);
+  };
   return (
     <footer className="bg-charcoal text-white/80">
+      {/* Newsletter band */}
+      <div className="border-b border-white/10">
+        <div className="container-x py-8 grid md:grid-cols-2 gap-4 items-center">
+          <div>
+            <div className="font-display font-black text-xl text-white">Salon growth tips, monthly.</div>
+            <div className="text-sm text-white/60 mt-1">One email a month. Playbooks, KPI ideas, no spam.</div>
+          </div>
+          {subscribed ? (
+            <div className="flex items-center gap-2 text-green-400 font-semibold">
+              <CheckCircle2 className="w-5 h-5" /> Thanks — check your inbox to confirm.
+            </div>
+          ) : (
+            <form onSubmit={subscribe} className="flex gap-2">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@salon.com"
+                className="flex-1 px-4 py-3 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-brand-500"
+              />
+              <button type="submit" className="btn-hero flex-shrink-0">
+                <Send className="w-4 h-4" /> Subscribe
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
       <div className="container-x py-14 grid grid-cols-1 md:grid-cols-5 gap-8">
         <div className="md:col-span-2">
           <Link to="/" className="flex items-center gap-2 text-white">

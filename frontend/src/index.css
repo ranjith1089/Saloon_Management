@@ -52,3 +52,8 @@
 /* Public pages use a warm cream background instead of the app's cool grey. */
 .public-body { @apply bg-cream text-charcoal font-sans antialiased; }
 .public-body ::selection { background: #DC2626; color: white; }
+
+/* Blog-post drop-cap on the first paragraph. Only affects .public-body content. */
+.public-body .prose > p:first-of-type::first-letter {
+  @apply font-display font-black text-brand-600 text-6xl float-left leading-none pr-2 pt-1;
+}

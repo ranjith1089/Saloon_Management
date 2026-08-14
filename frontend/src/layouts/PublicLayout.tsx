@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PublicNav from '@/components/public/PublicNav';
 import PublicFooter from '@/components/public/PublicFooter';
 import WhatsAppBubble from '@/components/public/WhatsAppBubble';
+import StickyDemoBar from '@/components/public/StickyDemoBar';
 import { useAuthStore } from '@/store/authStore';
 
 /**
@@ -36,6 +37,7 @@ export default function PublicLayout() {
       </main>
       <PublicFooter />
       <WhatsAppBubble />
+      <StickyDemoBar />
     </div>
   );
 }
