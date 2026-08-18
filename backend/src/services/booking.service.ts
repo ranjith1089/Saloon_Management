@@ -270,7 +270,7 @@ export class BookingService {
     startTime: string,
     endTime: string,
     excludeId?: string,
-    client: Prisma.TransactionClient | typeof prisma = prisma
+    client: any = prisma       // Ship 1B: the extended client's tx type differs from the raw one; widen to satisfy both
   ) {
     return client.booking.findMany({
       where: {
