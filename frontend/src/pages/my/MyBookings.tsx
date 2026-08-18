@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { Calendar, Clock, MapPin, User, Plus, Ban, Check } from 'lucide-react';
 import api from '@/services/api';
-import NewBookingModal from '@/components/NewBookingModal';
+import MyNewBookingModal from '@/components/my/MyNewBookingModal';
 
 type Tab = 'upcoming' | 'past';
 
@@ -161,7 +161,7 @@ export default function MyBookings() {
         </div>
       )}
 
-      <NewBookingModal open={newOpen} onClose={() => setNewOpen(false)} />
+      <MyNewBookingModal open={newOpen} onClose={() => setNewOpen(false)} />
     </div>
   );
 }

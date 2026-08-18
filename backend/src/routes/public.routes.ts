@@ -21,6 +21,25 @@ import { NotFoundError, BadRequestError } from '../utils/ApiError';
 
 const router = Router();
 
+// GET /public/branches — list active branches (for public branch pickers)
+router.get('/branches', asyncHandler(async (_req, res) => {
+  const branches = await prisma.branch.findMany({
+    where: { status: true },
+    include: { city: true },
+    orderBy: { name: 'asc' },
+  });
+  return ApiResponse.success(res, 'ok', branches.map((b) => ({
+    id: b.id,
+    name: b.name,
+    address: b.address,
+    phone: b.phone,
+    logo: b.logo,
+    openTime: b.openTime,
+    closeTime: b.closeTime,
+    city: b.city?.name || null,
+  })));
+}));
+
 // GET /public/branches/:branchId — public salon card
 router.get('/branches/:branchId', asyncHandler(async (req, res) => {
   const branch = await prisma.branch.findUnique({
