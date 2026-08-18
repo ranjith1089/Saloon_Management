@@ -42,6 +42,7 @@ import PublicBlogPost from '@/pages/public/BlogPost';
 import PublicContact from '@/pages/public/Contact';
 import StartSalon from '@/pages/public/StartSalon';
 import Onboarding from '@/pages/Onboarding';
+import Billing from '@/pages/Billing';
 import Sales from '@/pages/Sales';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="/reports"       element={<RoleGuard allow={[...ADMIN_MGR]}><Reports /></RoleGuard>} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/billing"  element={<RoleGuard allow={[...ADMIN_MGR]}><Billing /></RoleGuard>} />
 
         {/* Customer portal — dedicated /my/* space */}
         <Route path="/my/bookings"    element={<RoleGuard allow={['CUSTOMER']}><MyBookings /></RoleGuard>} />

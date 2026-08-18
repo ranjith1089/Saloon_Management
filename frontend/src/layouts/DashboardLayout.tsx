@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/services/api';
 import { useBranding } from '@/hooks/useBranding';
+import TrialBanner from '@/components/TrialBanner';
 import {
   LayoutDashboard,
   Calendar,
@@ -92,6 +93,7 @@ const adminMenuGroups: MenuGroup[] = [
       { path: '/payouts', label: 'Payouts', icon: Wallet, roles: ['ADMIN', 'MANAGER', 'STAFF'] },
       { path: '/coupons', label: 'Coupons', icon: Ticket, roles: ['ADMIN', 'MANAGER'] },
       { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/billing', label: 'Billing & Plans', icon: Crown, roles: ['ADMIN', 'MANAGER'] },
     ],
   },
   {
@@ -249,6 +251,9 @@ export default function DashboardLayout() {
             )}
           </div>
         </header>
+
+        {/* Trial banner — sits above every page's content when plan=TRIAL */}
+        <TrialBanner />
 
         {/* Page content */}
         <main className="p-4 lg:p-6">
