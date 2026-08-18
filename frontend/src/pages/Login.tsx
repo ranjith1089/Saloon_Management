@@ -20,7 +20,7 @@ export default function Login() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, setValue } = useForm<LoginForm>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
 
@@ -36,11 +36,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = (email: string, password: string) => {
-    setValue('email', email);
-    setValue('password', password);
   };
 
   return (
@@ -72,21 +67,6 @@ export default function Login() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
             </button>
           </form>
-
-          <div className="mt-6 border-t pt-6">
-            <p className="text-xs text-gray-500 mb-3 text-center">Demo Accounts (Click to fill)</p>
-            <div className="grid grid-cols-1 gap-2">
-              <button onClick={() => fillDemo('admin@salon.com', 'admin123')} className="text-xs bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-3 text-left">
-                <span className="font-medium">Admin:</span> admin@salon.com / admin123
-              </button>
-              <button onClick={() => fillDemo('manager@salon.com', 'manager123')} className="text-xs bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-3 text-left">
-                <span className="font-medium">Manager:</span> manager@salon.com / manager123
-              </button>
-              <button onClick={() => fillDemo('staff@salon.com', 'staff123')} className="text-xs bg-gray-100 hover:bg-gray-200 rounded-lg py-2 px-3 text-left">
-                <span className="font-medium">Staff:</span> staff@salon.com / staff123
-              </button>
-            </div>
-          </div>
 
           <p className="text-center text-sm text-gray-500 mt-6">
             Don't have an account?{' '}
