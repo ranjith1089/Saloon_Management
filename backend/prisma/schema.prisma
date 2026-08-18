@@ -15,10 +15,24 @@ datasource db {
 // ============================================
 
 enum UserRole {
+  OWNER      // Signup creator — owns the Organization
   ADMIN
   MANAGER
   STAFF
   CUSTOMER
+}
+
+enum SubscriptionPlan {
+  TRIAL
+  STARTER
+  GROWTH
+  PRO
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
 }
 
 enum UserStatus {
@@ -121,21 +135,52 @@ enum ReferralStatus {
 }
 
 // ============================================
+// ORGANIZATION (tenant root — Ship 1A of SaaS conversion)
+// ============================================
+// Every tenant-scoped row (Branch, Booking, Product, etc.) hangs off an
+// Organization. Existing data is grandfathered into a "Default Organization"
+// by migration 0011_multitenancy. All models below carry a nullable
+// organizationId in Ship 1A so the app keeps working; Ship 1B will make it
+// NOT NULL and add auto-filtering via a Prisma extension.
+
+model Organization {
+  id           String             @id @default(uuid())
+  slug         String             @unique
+  name         String
+  ownerUserId  String?            // The OWNER user who created this org
+  plan         SubscriptionPlan   @default(TRIAL)
+  status       OrganizationStatus @default(ACTIVE)
+  trialEndsAt  DateTime?
+  country      String?            // ISO 3166-1 alpha-2, drives currency + tax defaults
+  currency     String             @default("INR")
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  users    User[]
+  branches Branch[]
+
+  @@index([slug])
+  @@map("organizations")
+}
+
+// ============================================
 // USER & AUTH
 // ============================================
 
 model User {
-  id            String     @id @default(uuid())
-  email         String     @unique
-  passwordHash  String
-  role          UserRole   @default(CUSTOMER)
-  status        UserStatus @default(ACTIVE)
-  emailVerified Boolean    @default(false)
-  referralCode  String?    @unique                 // Their sharable code (lazy-created)
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id             String     @id @default(uuid())
+  organizationId String?    // Ship 1A: nullable — Ship 1B makes NOT NULL after backfill soaks
+  email          String     @unique
+  passwordHash   String
+  role           UserRole   @default(CUSTOMER)
+  status         UserStatus @default(ACTIVE)
+  emailVerified  Boolean    @default(false)
+  referralCode   String?    @unique                 // Their sharable code (lazy-created)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   // Relations
+  organization     Organization? @relation(fields: [organizationId], references: [id])
   profile          UserProfile?
   staff            Staff?
   customer         Customer?
@@ -149,6 +194,7 @@ model User {
 
   @@index([email])
   @@index([role])
+  @@index([organizationId])
   @@map("users")
 }
 
@@ -225,30 +271,33 @@ model City {
 // ============================================
 
 model Branch {
-  id          String   @id @default(uuid())
-  name        String
-  description String?
-  address     String
-  cityId      String
-  phone       String
-  email       String
-  logo        String?
-  latitude    Float?
-  longitude   Float?
-  openTime    String   @default("09:00")
-  closeTime   String   @default("21:00")
-  status      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  organizationId String?  // Ship 1A: nullable, backfilled to default org
+  name           String
+  description    String?
+  address        String
+  cityId         String
+  phone          String
+  email          String
+  logo           String?
+  latitude       Float?
+  longitude      Float?
+  openTime       String   @default("09:00")
+  closeTime      String   @default("21:00")
+  status         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  city     City             @relation(fields: [cityId], references: [id])
-  services BranchService[]
-  staff    Staff[]
-  bookings Booking[]
+  organization Organization?    @relation(fields: [organizationId], references: [id])
+  city         City             @relation(fields: [cityId], references: [id])
+  services     BranchService[]
+  staff        Staff[]
+  bookings     Booking[]
   productStocks ProductBranchStock[]
   productSales ProductSale[]
 
+  @@index([organizationId])
   @@map("branches")
 }
 
@@ -258,6 +307,7 @@ model Branch {
 
 model ServiceCategory {
   id          String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name        String   @unique
   description String?
   icon        String?
@@ -268,12 +318,14 @@ model ServiceCategory {
   parent   ServiceCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children ServiceCategory[] @relation("CategoryHierarchy")
   services Service[]
+  @@index([organizationId])
 
   @@map("service_categories")
 }
 
 model Service {
   id          String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name        String
   description String?
   price       Decimal  @db.Decimal(10, 2)
@@ -291,6 +343,7 @@ model Service {
   bookings  Booking[]
 
   @@index([categoryId])
+  @@index([organizationId])
   @@map("services")
 }
 
@@ -312,6 +365,7 @@ model BranchService {
 
 model Staff {
   id             String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   userId         String   @unique
   branchId       String
   employeeCode   String   @unique
@@ -336,6 +390,7 @@ model Staff {
   productSales ProductSale[]
 
   @@index([branchId])
+  @@index([organizationId])
   @@map("staff")
 }
 
@@ -370,6 +425,7 @@ model StaffSchedule {
 
 model Customer {
   id             String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   userId         String   @unique
   loyaltyPoints  Int      @default(0)
   totalVisits    Int      @default(0)
@@ -380,6 +436,7 @@ model Customer {
   updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([organizationId])
 
   @@map("customers")
 }
@@ -390,6 +447,7 @@ model Customer {
 
 model Booking {
   id            String        @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   bookingNumber String        @unique
   customerId    String?                       // null when this is a walk-in service sale
   walkInName    String?
@@ -428,6 +486,7 @@ model Booking {
   @@index([staffId])
   @@index([branchId])
   @@index([bookingDate])
+  @@index([organizationId])
   @@map("bookings")
 }
 
@@ -437,6 +496,7 @@ model Booking {
 
 model Notification {
   id        String              @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   userId    String
   title     String
   message   String
@@ -449,11 +509,13 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, isRead])
+  @@index([organizationId])
   @@map("notifications")
 }
 
 model NotificationTemplate {
   id        String              @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name      String              @unique
   type      NotificationType
   channel   NotificationChannel
@@ -463,6 +525,7 @@ model NotificationTemplate {
   isActive  Boolean             @default(true)
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
+  @@index([organizationId])
 
   @@map("notification_templates")
 }
@@ -473,6 +536,7 @@ model NotificationTemplate {
 
 model Tax {
   id          String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name        String
   rate        Decimal  @db.Decimal(5, 2)
   description String?
@@ -480,12 +544,14 @@ model Tax {
   isDefault   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@index([organizationId])
 
   @@map("taxes")
 }
 
 model StaffEarning {
   id               String       @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   staffId          String
   bookingId        String?      @unique
   productSaleId    String?      @unique
@@ -503,11 +569,13 @@ model StaffEarning {
 
   @@index([staffId])
   @@index([payoutStatus])
+  @@index([organizationId])
   @@map("staff_earnings")
 }
 
 model Payout {
   id            String       @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   staffId       String
   amount        Decimal      @db.Decimal(10, 2)
   periodStart   DateTime
@@ -525,6 +593,7 @@ model Payout {
 
   @@index([staffId])
   @@index([status])
+  @@index([organizationId])
   @@map("payouts")
 }
 
@@ -534,6 +603,7 @@ model Payout {
 
 model Coupon {
   id             String       @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   code           String       @unique
   name           String
   description    String?
@@ -551,6 +621,7 @@ model Coupon {
   updatedAt      DateTime     @updatedAt
 
   bookings Booking[]
+  @@index([organizationId])
 
   @@map("coupons")
 }
@@ -561,6 +632,7 @@ model Coupon {
 
 model Review {
   id         String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   bookingId  String   @unique
   customerId String
   staffId    String
@@ -575,6 +647,7 @@ model Review {
 
   @@index([staffId])
   @@index([serviceId])
+  @@index([organizationId])
   @@map("reviews")
 }
 
@@ -587,6 +660,7 @@ model Review {
 // Type field lets us group related keys (e.g. all "BRANDING" keys)
 model Setting {
   id        String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   key       String   @unique
   value     String   // JSON-encoded value
   type      String   // "BRANDING" | "CURRENCY" | "BUSINESS" | "NOTIFICATIONS" | ...
@@ -594,11 +668,13 @@ model Setting {
   updatedAt DateTime @updatedAt
 
   @@index([type])
+  @@index([organizationId])
   @@map("settings")
 }
 
 model Holiday {
   id        String          @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name      String
   date      DateTime        @db.Date
   repeats   Boolean         @default(false)
@@ -609,11 +685,13 @@ model Holiday {
   updatedAt DateTime        @updatedAt
 
   @@index([date])
+  @@index([organizationId])
   @@map("holidays")
 }
 
 model PaymentMethod {
   id           String            @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name         String
   type         PaymentMethodType @default(CASH)
   gateway      PaymentGateway    @default(NONE)
@@ -626,6 +704,7 @@ model PaymentMethod {
   webhookUrl   String?
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  @@index([organizationId])
 
   @@map("payment_methods")
 }
@@ -636,6 +715,7 @@ model PaymentMethod {
 
 model ProductCategory {
   id        String    @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name      String    @unique
   icon      String?
   isActive  Boolean   @default(true)
@@ -643,12 +723,14 @@ model ProductCategory {
   updatedAt DateTime  @updatedAt
 
   products  Product[]
+  @@index([organizationId])
 
   @@map("product_categories")
 }
 
 model Product {
   id           String    @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   categoryId   String?
   name         String
   sku          String?   @unique
@@ -671,6 +753,7 @@ model Product {
 
   @@index([categoryId])
   @@index([expiryDate])
+  @@index([organizationId])
   @@map("products")
 }
 
@@ -695,6 +778,7 @@ model ProductBranchStock {
 
 model ProductSale {
   id             String        @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   saleNumber     String        @unique
   branchId       String
   customerId     String?
@@ -723,6 +807,7 @@ model ProductSale {
   @@index([customerId])
   @@index([staffId])
   @@index([createdAt])
+  @@index([organizationId])
   @@map("product_sales")
 }
 
@@ -748,6 +833,7 @@ model ProductSaleItem {
 
 model MembershipPlan {
   id           String   @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name         String
   description  String?
   price        Decimal  @db.Decimal(10, 2)   // Fee the customer pays to join
@@ -759,6 +845,7 @@ model MembershipPlan {
   updatedAt    DateTime @updatedAt
 
   memberships Membership[]
+  @@index([organizationId])
 
   @@map("membership_plans")
 }
@@ -782,6 +869,7 @@ model Permission {
 
 model Referral {
   id            String         @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   code          String                                    // snapshot of owner.referralCode used at signup
   ownerId       String                                    // customer who referred (has the code)
   refereeId     String?        @unique                    // new customer who signed up via that code
@@ -797,11 +885,13 @@ model Referral {
   @@index([ownerId])
   @@index([status])
   @@index([code])
+  @@index([organizationId])
   @@map("referrals")
 }
 
 model Inquiry {
   id            String        @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   name          String
   email         String
   phone         String?
@@ -817,6 +907,7 @@ model Inquiry {
 
   @@index([status])
   @@index([createdAt])
+  @@index([organizationId])
   @@map("inquiries")
 }
 
@@ -833,6 +924,7 @@ model RolePermission {
 
 model Membership {
   id            String           @id @default(uuid())
+  organizationId String?  // Ship 1A: multi-tenancy
   customerId    String                          // FK -> User
   planId        String
   startDate     DateTime
@@ -850,5 +942,6 @@ model Membership {
   @@index([customerId])
   @@index([endDate])
   @@index([status])
+  @@index([organizationId])
   @@map("memberships")
 }

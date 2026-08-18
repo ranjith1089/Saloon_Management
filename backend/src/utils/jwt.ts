@@ -5,6 +5,7 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  organizationId?: string | null;   // Ship 1A: multi-tenancy — optional so old tokens still validate
 }
 
 export const generateAccessToken = (payload: JwtPayload): string => {

@@ -19,11 +19,38 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, 10);
     const role = (data.role as UserRole) || 'CUSTOMER';
 
+    // Multi-tenancy (Ship 1A):
+    //  - CUSTOMER signups are attached to the Default Organization so they
+    //    can book at any salon. Ship 2 will let customers pick their salon.
+    //  - Every other role starts a fresh Organization owned by them. In
+    //    Ship 2 this becomes a proper onboarding wizard (salon name, city,
+    //    plan choice). For now we auto-generate name + slug from email.
+    let organizationId: string;
+    if (role === 'CUSTOMER') {
+      organizationId = '00000000-0000-0000-0000-000000000001';
+    } else {
+      const emailLocal = data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'salon';
+      // Suffix a few random chars so two people with the same email prefix don't collide
+      const slug = `${emailLocal}-${Math.random().toString(36).slice(2, 6)}`;
+      const orgName = `${data.firstName || 'My'}'s Salon`;
+      const org = await prisma.organization.create({
+        data: {
+          slug,
+          name: orgName,
+          plan: 'TRIAL',
+          status: 'ACTIVE',
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),   // 14-day trial
+        },
+      });
+      organizationId = org.id;
+    }
+
     const user = await prisma.user.create({
       data: {
         email: data.email,
         passwordHash,
         role,
+        organizationId,
         profile: {
           create: {
             firstName: data.firstName,
@@ -41,7 +68,16 @@ export class AuthService {
       },
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    // Link the new org's ownerUserId back to the creator (skip for customers,
+    // who don't own their org — they're attached to the Default Organization).
+    if (role !== 'CUSTOMER') {
+      await prisma.organization.update({
+        where: { id: organizationId },
+        data:  { ownerUserId: user.id },
+      });
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email, user.role, organizationId);
 
     // Track referral (if signup carried a ?ref=CODE). Best-effort — a bad
     // code shouldn't block registration.
@@ -79,7 +115,7 @@ export class AuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const tokens = await this.generateTokens(user.id, user.email, user.role, user.organizationId);
 
     return {
       user: this.sanitizeUser(user),
@@ -114,7 +150,8 @@ export class AuthService {
     const tokens = await this.generateTokens(
       storedToken.user.id,
       storedToken.user.email,
-      storedToken.user.role
+      storedToken.user.role,
+      storedToken.user.organizationId,
     );
 
     return {
@@ -195,9 +232,15 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
-  private static async generateTokens(userId: string, email: string, role: string) {
-    const accessToken = generateAccessToken({ userId, email, role });
-    const refreshToken = generateRefreshToken({ userId, email, role });
+  private static async generateTokens(
+    userId: string,
+    email: string,
+    role: string,
+    organizationId: string | null | undefined,
+  ) {
+    const payload = { userId, email, role, organizationId: organizationId ?? null };
+    const accessToken  = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
 
     // Store refresh token in DB
     await prisma.refreshToken.create({

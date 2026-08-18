@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, JwtPayload } from '../utils/jwt';
 import { UnauthorizedError, ForbiddenError } from '../utils/ApiError';
+import { runInTenant } from '../config/tenantContext';
 
 declare global {
   namespace Express {
@@ -21,7 +22,17 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
     const token = authHeader.split(' ')[1];
     const decoded = verifyAccessToken(token);
     req.user = decoded;
-    next();
+    // Ship 1A: run the rest of the request inside a tenant frame so
+    // downstream code (services, Prisma extension in Ship 1B) can read
+    // the caller's organizationId via getCurrentOrgId().
+    runInTenant(
+      {
+        organizationId: decoded.organizationId ?? null,
+        userId:         decoded.userId,
+        role:           decoded.role,
+      },
+      () => next(),
+    );
   } catch (error) {
     next(error);
   }
