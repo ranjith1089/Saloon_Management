@@ -38,16 +38,25 @@ export const authenticate = (req: Request, _res: Response, next: NextFunction) =
   }
 };
 
+/**
+ * Role gate. Passes if the caller's role is in the allow-list.
+ *
+ * Role hierarchy (Ship 2): OWNER ⊃ ADMIN. Whenever a route accepts ADMIN,
+ * OWNER is implicitly allowed too — the org creator can never lose access
+ * to their own tenant. We avoid editing 89 routes by expanding the list
+ * here instead.
+ */
 export const authorize = (...roles: string[]) => {
+  const expanded = roles.includes('ADMIN') && !roles.includes('OWNER')
+    ? [...roles, 'OWNER']
+    : roles;
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new UnauthorizedError('User not authenticated'));
     }
-
-    if (!roles.includes(req.user.role)) {
+    if (!expanded.includes(req.user.role)) {
       return next(new ForbiddenError('You do not have permission to access this resource'));
     }
-
     next();
   };
 };

@@ -23,6 +23,7 @@ import marketingRoutes from './marketing.routes';
 import referralRoutes from './referral.routes';
 import messagingRoutes from './messaging.routes';
 import publicRoutes from './public.routes';
+import organizationRoutes from './organization.routes';
 
 const router = Router();
 
@@ -71,5 +72,6 @@ router.use('/marketing', marketingRoutes);
 router.use('/referrals', referralRoutes);
 router.use('/messaging', messagingRoutes);
 router.use('/public', publicRoutes);
+router.use('/organizations', organizationRoutes);
 
 export default router;

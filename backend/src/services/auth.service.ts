@@ -5,6 +5,7 @@ import { BadRequestError, UnauthorizedError, NotFoundError } from '../utils/ApiE
 import { RegisterInput, LoginInput, UpdateProfileInput } from '../validators/auth.validator';
 import { UserRole } from '@prisma/client';
 import { ReferralService } from './referral.service';
+import { generateUniqueSlug } from '../utils/slug';
 
 export class AuthService {
   static async register(data: RegisterInput) {
@@ -19,27 +20,34 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(data.password, 10);
     const role = (data.role as UserRole) || 'CUSTOMER';
 
-    // Multi-tenancy (Ship 1A):
-    //  - CUSTOMER signups are attached to the Default Organization so they
-    //    can book at any salon. Ship 2 will let customers pick their salon.
-    //  - Every other role starts a fresh Organization owned by them. In
-    //    Ship 2 this becomes a proper onboarding wizard (salon name, city,
-    //    plan choice). For now we auto-generate name + slug from email.
+    // Multi-tenancy (Ship 2):
+    //  - CUSTOMER signups attach to the Default Organization so they can
+    //    book at any salon.
+    //  - Salon owner signups (any role except CUSTOMER) create a fresh
+    //    Organization with a 14-day TRIAL plan. If the payload carries
+    //    salonName/country/currency the org is customised; otherwise we
+    //    fall back to a sensible default so existing single-step signups
+    //    keep working.
     let organizationId: string;
     if (role === 'CUSTOMER') {
       organizationId = '00000000-0000-0000-0000-000000000001';
     } else {
-      const emailLocal = data.email.split('@')[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'salon';
-      // Suffix a few random chars so two people with the same email prefix don't collide
-      const slug = `${emailLocal}-${Math.random().toString(36).slice(2, 6)}`;
-      const orgName = `${data.firstName || 'My'}'s Salon`;
+      const anyData: any = data;
+      const salonName = (anyData.salonName as string | undefined)?.trim()
+        || `${data.firstName || 'My'}'s Salon`;
+      const slug = await generateUniqueSlug(salonName || data.email.split('@')[0]);
+      const country  = (anyData.country as string | undefined)?.toUpperCase().slice(0, 2) || 'IN';
+      const currency = (anyData.currency as string | undefined)?.toUpperCase().slice(0, 3)
+        || (country === 'US' ? 'USD' : country === 'GB' ? 'GBP' : country === 'AE' ? 'AED' : 'INR');
       const org = await prisma.organization.create({
         data: {
           slug,
-          name: orgName,
+          name: salonName,
+          country,
+          currency,
           plan: 'TRIAL',
           status: 'ACTIVE',
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),   // 14-day trial
+          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         },
       });
       organizationId = org.id;

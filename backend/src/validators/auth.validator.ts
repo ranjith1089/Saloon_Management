@@ -7,8 +7,14 @@ export const registerSchema = z.object({
     firstName: z.string().min(2, 'First name must be at least 2 characters'),
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
     phone: z.string().optional(),
-    role: z.enum(['ADMIN', 'MANAGER', 'STAFF', 'CUSTOMER']).optional(),
+    role: z.enum(['OWNER', 'ADMIN', 'MANAGER', 'STAFF', 'CUSTOMER']).optional(),
     referralCode: z.string().max(20).optional(),
+    // Ship 2 — salon owner signup carries salon details for the new
+    // Organization that gets created. All optional so existing register
+    // flow still works.
+    salonName: z.string().min(2).max(100).optional(),
+    country:   z.string().length(2).optional(),   // ISO 3166-1 alpha-2
+    currency:  z.string().length(3).optional(),   // ISO 4217
   }),
 });
 
