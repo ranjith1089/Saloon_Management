@@ -36,7 +36,7 @@ export default function Home() {
               Built for India.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link to="/register" className="btn-hero">
+              <Link to="/start-salon" className="btn-hero">
                 Start 14-day free trial <ArrowRight className="w-4 h-4" />
               </Link>
               <Link to="/features" className="btn-hero-secondary">
@@ -277,7 +277,7 @@ export default function Home() {
               14-day free trial. Setup takes ten minutes. Your first WhatsApp confirmation goes out today.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <Link to="/register" className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full shadow-2xl">
+              <Link to="/start-salon" className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full shadow-2xl">
                 Start free trial
               </Link>
               <Link to="/contact" className="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold px-6 py-3 rounded-full">

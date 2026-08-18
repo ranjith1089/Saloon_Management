@@ -57,7 +57,7 @@ export default function PublicNav() {
           >
             <LogIn className="w-4 h-4" /> Login
           </Link>
-          <Link to="/register" className="btn-hero text-sm !py-2.5">Start free trial</Link>
+          <Link to="/start-salon" className="btn-hero text-sm !py-2.5">Start free trial</Link>
         </div>
 
         <div className="md:hidden flex items-center gap-2">
@@ -92,7 +92,7 @@ export default function PublicNav() {
               <Link to="/login" className="btn-hero-secondary text-sm justify-center">
                 <LogIn className="w-4 h-4" /> Login
               </Link>
-              <Link to="/register" className="btn-hero text-sm justify-center">Start free trial</Link>
+              <Link to="/start-salon" className="btn-hero text-sm justify-center">Start free trial</Link>
             </div>
           </div>
         </div>

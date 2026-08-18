@@ -40,6 +40,8 @@ import PublicPricing from '@/pages/public/Pricing';
 import PublicBlog from '@/pages/public/Blog';
 import PublicBlogPost from '@/pages/public/BlogPost';
 import PublicContact from '@/pages/public/Contact';
+import StartSalon from '@/pages/public/StartSalon';
+import Onboarding from '@/pages/Onboarding';
 import Sales from '@/pages/Sales';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
@@ -58,7 +60,11 @@ export default function App() {
         <Route path="/blog"     element={<PublicBlog />} />
         <Route path="/blog/:slug" element={<PublicBlogPost />} />
         <Route path="/contact"  element={<PublicContact />} />
+        <Route path="/start-salon" element={<StartSalon />} />
       </Route>
+
+      {/* Onboarding wizard — full screen, requires auth but sits outside DashboardLayout */}
+      <Route path="/onboarding" element={<Onboarding />} />
 
       {/* Auth screens — full-page, no layout */}
       <Route path="/login" element={<Login />} />

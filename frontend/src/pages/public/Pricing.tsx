@@ -195,7 +195,7 @@ export default function Pricing() {
           <h2 className="h-display text-3xl sm:text-4xl">Still unsure? Talk to a human.</h2>
           <p className="mt-3 text-white/80">Book a 15-minute demo. We'll answer every question you've got.</p>
           <div className="mt-6 flex justify-center gap-3 flex-wrap">
-            <Link to="/register" className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full">
+            <Link to="/start-salon" className="bg-white text-brand-600 hover:bg-cream font-semibold px-6 py-3 rounded-full">
               Start free trial <ArrowRight className="w-4 h-4 inline ml-1" />
             </Link>
             <a href="https://wa.me/918754006483" target="_blank" rel="noreferrer" className="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-semibold px-6 py-3 rounded-full">
@@ -240,7 +240,7 @@ function TierCard({ name, tag, price, suffix, desc, features, highlight = false 
         ))}
       </ul>
       <Link
-        to="/register"
+        to="/start-salon"
         className={`mt-6 text-center font-semibold py-3 rounded-full transition-all ${highlight ? 'bg-brand-600 hover:bg-brand-700 text-white' : 'bg-charcoal hover:bg-black text-white'}`}
       >
         Start free trial

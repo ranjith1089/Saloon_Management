@@ -154,7 +154,7 @@ export default function Features() {
           <h2 className="h-display text-3xl sm:text-4xl">See it running on your own salon.</h2>
           <p className="mt-3 text-white/70">14-day free trial. No credit card. Live in ten minutes.</p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link to="/register" className="btn-hero">
+            <Link to="/start-salon" className="btn-hero">
               Start free trial <ArrowRight className="w-4 h-4" />
             </Link>
             <Link to="/pricing" className="btn-hero-secondary">See pricing</Link>

@@ -38,7 +38,7 @@ export default function StickyDemoBar() {
           <MessageCircle className="w-4 h-4" /> WhatsApp
         </a>
         <Link
-          to="/register"
+          to="/start-salon"
           className="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm py-2.5 rounded-full flex items-center justify-center gap-1.5"
         >
           Start free <ArrowRight className="w-4 h-4" />
