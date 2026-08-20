@@ -21,6 +21,26 @@ router.get('/onboarding-status', asyncHandler(async (_req, res) => {
   return ApiResponse.success(res, 'ok', status);
 }));
 
+// GET /organizations/me/export — DPDPA data export (JSON bundle)
+router.get(
+  '/me/export',
+  authorize('OWNER', 'ADMIN'),
+  asyncHandler(async (_req, res) => {
+    const bundle = await OrganizationService.exportAllData();
+    return ApiResponse.success(res, 'ok', bundle);
+  }),
+);
+
+// POST /organizations/me/request-deletion — soft-delete the tenant
+router.post(
+  '/me/request-deletion',
+  authorize('OWNER'),
+  asyncHandler(async (_req, res) => {
+    const org = await OrganizationService.requestDeletion();
+    return ApiResponse.success(res, 'Organization scheduled for deletion', org);
+  }),
+);
+
 // PATCH /organizations/me — owner/admin can update tenant settings
 const updateSchema = z.object({
   body: z.object({

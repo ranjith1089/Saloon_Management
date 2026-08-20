@@ -44,6 +44,8 @@ import StartSalon from '@/pages/public/StartSalon';
 import Onboarding from '@/pages/Onboarding';
 import Billing from '@/pages/Billing';
 import SuperAdmin from '@/pages/SuperAdmin';
+import DataPrivacy from '@/pages/DataPrivacy';
+import Legal from '@/pages/public/Legal';
 import Sales from '@/pages/Sales';
 
 const ADMIN_MGR = ['ADMIN', 'MANAGER'] as const;
@@ -63,6 +65,7 @@ export default function App() {
         <Route path="/blog/:slug" element={<PublicBlogPost />} />
         <Route path="/contact"  element={<PublicContact />} />
         <Route path="/start-salon" element={<StartSalon />} />
+        <Route path="/legal/:doc"  element={<Legal />} />
       </Route>
 
       {/* Onboarding wizard — full screen, requires auth but sits outside DashboardLayout */}
@@ -99,6 +102,7 @@ export default function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/billing"  element={<RoleGuard allow={[...ADMIN_MGR]}><Billing /></RoleGuard>} />
+        <Route path="/data-privacy" element={<RoleGuard allow={['OWNER', 'ADMIN']}><DataPrivacy /></RoleGuard>} />
         <Route path="/super-admin" element={<RoleGuard allow={['SUPERADMIN']}><SuperAdmin /></RoleGuard>} />
 
         {/* Customer portal — dedicated /my/* space */}

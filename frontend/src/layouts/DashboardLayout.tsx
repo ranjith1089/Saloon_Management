@@ -105,6 +105,7 @@ const adminMenuGroups: MenuGroup[] = [
       { path: '/inquiries', label: 'Users Inquiries', icon: Mail, roles: ['ADMIN', 'MANAGER'] },
       { path: '/notifications', label: 'Notifications', icon: Bell },
       { path: '/access-control', label: 'Access Control', icon: ShieldCheck, roles: ['ADMIN'] },
+      { path: '/data-privacy', label: 'Data & Privacy', icon: ShieldCheck, roles: ['OWNER', 'ADMIN'] },
       { path: '/settings', label: 'Settings', icon: Settings },
     ],
   },

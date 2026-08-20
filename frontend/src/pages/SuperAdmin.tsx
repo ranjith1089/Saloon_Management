@@ -168,6 +168,9 @@ export default function SuperAdmin() {
         </div>
       </div>
 
+      {/* Recent super-admin actions */}
+      <AuditLogPanel />
+
       {drawer && <OrgDrawer orgId={drawer} onClose={() => setDrawer(null)} />}
     </div>
   );
@@ -410,6 +413,56 @@ function OrgDrawer({ orgId, onClose }: { orgId: string; onClose: () => void }) {
               </div>
             )}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Audit log panel — recent super-admin actions
+// ---------------------------------------------------------------------------
+function AuditLogPanel() {
+  const q = useQuery<any[]>({
+    queryKey: ['sa-audit'],
+    queryFn: async () => (await api.get('/super-admin/audit-log')).data.data,
+    staleTime: 30_000,
+  });
+  const actionTone: Record<string, string> = {
+    impersonate:     'bg-purple-100 text-purple-700',
+    'plan.change':   'bg-primary-100 text-primary-700',
+    'trial.extend':  'bg-amber-100 text-amber-700',
+    'status.change': 'bg-blue-100 text-blue-700',
+  };
+  return (
+    <div className="card !p-0 overflow-hidden">
+      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <div className="font-semibold">Recent actions</div>
+          <div className="text-xs text-gray-500">Every super-admin write across every tenant.</div>
+        </div>
+        {q.isLoading && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+      </div>
+      <div className="max-h-96 overflow-y-auto">
+        {(q.data || []).slice(0, 40).map((row) => (
+          <div key={row.id} className="px-4 py-2.5 border-b border-gray-100 last:border-0 flex items-center gap-3 text-sm">
+            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full flex-shrink-0 ${actionTone[row.action] || 'bg-gray-100 text-gray-700'}`}>
+              {row.action}
+            </span>
+            <div className="flex-1 min-w-0 truncate">
+              <span className="font-semibold">{row.actorEmail}</span>
+              {row.targetType && <span className="text-gray-500"> · {row.targetType} {row.targetId?.slice(0, 8)}…</span>}
+              {row.meta && (
+                <span className="text-gray-500 text-xs"> · {JSON.stringify(row.meta)}</span>
+              )}
+            </div>
+            <span className="text-xs text-gray-400 flex-shrink-0">
+              {new Date(row.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        ))}
+        {q.data?.length === 0 && (
+          <div className="p-8 text-center text-sm text-gray-500">No super-admin actions yet.</div>
         )}
       </div>
     </div>

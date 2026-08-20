@@ -11,6 +11,8 @@ import { isReserved, normaliseSlug } from '../utils/slug';
 import { UsageService } from './usage.service';
 import { PLAN_LIMITS } from '../config/plans';
 import { SubscriptionPlan } from '@prisma/client';
+import { basePrisma } from '../config/database';
+import { runAsSystem } from '../config/tenantContext';
 
 export class OrganizationService {
   /** Return the current tenant + owner + counts. Used by the wizard + billing UI. */
@@ -81,6 +83,86 @@ export class OrganizationService {
     }
 
     return prisma.organization.update({ where: { id: orgId }, data });
+  }
+
+  /**
+   * DPDPA / GDPR data export — returns every row this tenant owns as one
+   * JSON bundle. Uses the raw client so we can bypass the tenant scope
+   * extension (we filter by orgId manually) and pull related child rows
+   * that don't carry organizationId on their own.
+   */
+  static async exportAllData() {
+    const orgId = getCurrentOrgId();
+    if (!orgId) throw new ForbiddenError('No tenant context');
+
+    return runAsSystem(async () => {
+      const [
+        organization, users, branches, services, staff, customers, bookings,
+        products, productSales, coupons, membershipPlans, memberships, reviews,
+        payouts, staffEarnings, notifications, subscriptions, invoices,
+      ] = await Promise.all([
+        basePrisma.organization.findUnique({ where: { id: orgId } }),
+        basePrisma.user.findMany({ where: { organizationId: orgId }, include: { profile: true } }),
+        basePrisma.branch.findMany({ where: { organizationId: orgId } }),
+        basePrisma.service.findMany({ where: { organizationId: orgId } }),
+        basePrisma.staff.findMany({ where: { organizationId: orgId } }),
+        basePrisma.customer.findMany({ where: { organizationId: orgId } }),
+        basePrisma.booking.findMany({ where: { organizationId: orgId } }),
+        basePrisma.product.findMany({ where: { organizationId: orgId } }),
+        basePrisma.productSale.findMany({ where: { organizationId: orgId }, include: { items: true } }),
+        basePrisma.coupon.findMany({ where: { organizationId: orgId } }),
+        basePrisma.membershipPlan.findMany({ where: { organizationId: orgId } }),
+        basePrisma.membership.findMany({ where: { organizationId: orgId } }),
+        basePrisma.review.findMany({ where: { organizationId: orgId } }),
+        basePrisma.payout.findMany({ where: { organizationId: orgId } }),
+        basePrisma.staffEarning.findMany({ where: { organizationId: orgId } }),
+        basePrisma.notification.findMany({ where: { organizationId: orgId } }),
+        basePrisma.subscription.findMany({ where: { organizationId: orgId } }),
+        basePrisma.invoice.findMany({ where: { organizationId: orgId } }),
+      ]);
+
+      // Scrub secret material before shipping to the client.
+      const safeUsers = users.map((u) => ({ ...u, passwordHash: undefined }));
+
+      return {
+        exportedAt: new Date().toISOString(),
+        organization,
+        counts: {
+          users: users.length, branches: branches.length, services: services.length,
+          staff: staff.length, customers: customers.length, bookings: bookings.length,
+          products: products.length, productSales: productSales.length,
+          coupons: coupons.length, membershipPlans: membershipPlans.length,
+          memberships: memberships.length, reviews: reviews.length,
+          payouts: payouts.length, staffEarnings: staffEarnings.length,
+          notifications: notifications.length, subscriptions: subscriptions.length,
+          invoices: invoices.length,
+        },
+        data: {
+          users: safeUsers, branches, services, staff, customers, bookings,
+          products, productSales, coupons, membershipPlans, memberships,
+          reviews, payouts, staffEarnings, notifications, subscriptions, invoices,
+        },
+      };
+    });
+  }
+
+  /**
+   * Soft-delete the tenant. Sets status=DELETED so login is refused; the
+   * actual row purge happens later via a super-admin action. Cheap for
+   * the customer to change their mind.
+   */
+  static async requestDeletion() {
+    const orgId = getCurrentOrgId();
+    if (!orgId) throw new ForbiddenError('No tenant context');
+    if (orgId === '00000000-0000-0000-0000-000000000001') {
+      throw new BadRequestError('The Default Organization cannot be deleted');
+    }
+    return runAsSystem(() =>
+      basePrisma.organization.update({
+        where: { id: orgId },
+        data:  { status: 'DELETED' },
+      }),
+    );
   }
 
   /**
