@@ -4,6 +4,7 @@ import {
   MembershipController,
 } from '../controllers/membership.controller';
 import { authenticate, authorize } from '../middlewares/auth';
+import { requireFeature } from '../middlewares/feature.middleware';
 import { validate } from '../middlewares/validate';
 import {
   createPlanSchema,
@@ -16,10 +17,12 @@ import {
 export const plansRouter = (() => {
   const r = Router();
   r.use(authenticate);
-  r.post('/', authorize('ADMIN', 'MANAGER'), validate(createPlanSchema), MembershipPlanController.create);
+  // Writes gated behind the memberships feature flag; reads pass so a
+  // downgraded org can still see (and archive) what they already sold.
+  r.post('/', authorize('ADMIN', 'MANAGER'), requireFeature('memberships'), validate(createPlanSchema), MembershipPlanController.create);
   r.get('/', MembershipPlanController.findAll);
   r.get('/:id', MembershipPlanController.findById);
-  r.patch('/:id', authorize('ADMIN', 'MANAGER'), validate(updatePlanSchema), MembershipPlanController.update);
+  r.patch('/:id', authorize('ADMIN', 'MANAGER'), requireFeature('memberships'), validate(updatePlanSchema), MembershipPlanController.update);
   r.delete('/:id', authorize('ADMIN'), MembershipPlanController.delete);
   return r;
 })();
@@ -30,11 +33,11 @@ export const membershipsRouter = (() => {
   r.use(authenticate);
   // Active lookup (used by booking + POS to preview prices) — all roles.
   r.get('/active/:customerId', MembershipController.active);
-  r.post('/', authorize('ADMIN', 'MANAGER'), validate(createMembershipSchema), MembershipController.create);
+  r.post('/', authorize('ADMIN', 'MANAGER'), requireFeature('memberships'), validate(createMembershipSchema), MembershipController.create);
   // List + detail are scoped in the controller — CUSTOMER sees only their own.
   r.get('/', MembershipController.findAll);
   r.get('/:id', MembershipController.findById);
-  r.patch('/:id', authorize('ADMIN', 'MANAGER'), validate(updateMembershipSchema), MembershipController.update);
+  r.patch('/:id', authorize('ADMIN', 'MANAGER'), requireFeature('memberships'), validate(updateMembershipSchema), MembershipController.update);
   r.post('/:id/cancel', authorize('ADMIN', 'MANAGER'), MembershipController.cancel);
   return r;
 })();

@@ -80,3 +80,21 @@ export const CURRENCY_SYMBOL: Record<'INR' | 'USD' | 'GBP' | 'AED', string> = {
 export function planByCode(code: PlanCode): PlanDef | undefined {
   return PLANS.find((p) => p.code === code);
 }
+
+// Feature flags per plan — mirror of backend/src/config/plans.ts
+// PLAN_LIMITS booleans. Used by the sidebar to render a crown/lock on
+// items the current plan can't open, so the click doesn't dead-end at
+// a 402 toast.
+export type FeatureFlag = 'memberships' | 'referrals' | 'growthKit' | 'multiBranchReports' | 'apiAccess';
+
+export const PLAN_FEATURES: Record<PlanCode, Record<FeatureFlag, boolean>> = {
+  TRIAL:   { memberships: true,  referrals: true,  growthKit: true,  multiBranchReports: false, apiAccess: false },
+  STARTER: { memberships: false, referrals: false, growthKit: false, multiBranchReports: false, apiAccess: false },
+  GROWTH:  { memberships: true,  referrals: true,  growthKit: true,  multiBranchReports: false, apiAccess: false },
+  PRO:     { memberships: true,  referrals: true,  growthKit: true,  multiBranchReports: true,  apiAccess: true  },
+};
+
+export function planIncludes(plan: PlanCode | undefined, feature: FeatureFlag): boolean {
+  if (!plan) return true;   // no plan info yet → don't lock speculatively
+  return PLAN_FEATURES[plan]?.[feature] ?? true;
+}

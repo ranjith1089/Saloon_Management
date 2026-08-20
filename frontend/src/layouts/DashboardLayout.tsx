@@ -3,6 +3,8 @@ import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/services/api';
 import { useBranding } from '@/hooks/useBranding';
+import { useOrganization } from '@/hooks/useOrganization';
+import { planIncludes } from '@/config/plans';
 import TrialBanner from '@/components/TrialBanner';
 import {
   LayoutDashboard,
@@ -39,7 +41,7 @@ import toast from 'react-hot-toast';
 // Admin / manager / staff menu — grouped like Frezka (MAIN / COMPANY / SHOP /
 // USERS / FINANCE / SYSTEM) with a section heading between each group.
 // CUSTOMER gets a smaller purpose-built menu below.
-type MenuItem = { path: string; label: string; icon: any; roles?: string[] };
+type MenuItem = { path: string; label: string; icon: any; roles?: string[]; requiresFeature?: import('@/config/plans').FeatureFlag };
 type MenuGroup = { heading: string; items: MenuItem[] };
 
 const adminMenuGroups: MenuGroup[] = [
@@ -55,7 +57,7 @@ const adminMenuGroups: MenuGroup[] = [
     items: [
       { path: '/branches', label: 'Branches', icon: Building2, roles: ['ADMIN', 'MANAGER'] },
       { path: '/services', label: 'Services', icon: Scissors, roles: ['ADMIN', 'MANAGER'] },
-      { path: '/memberships', label: 'Memberships', icon: Crown, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/memberships', label: 'Memberships', icon: Crown, roles: ['ADMIN', 'MANAGER'], requiresFeature: 'memberships' },
     ],
   },
   {
@@ -81,8 +83,8 @@ const adminMenuGroups: MenuGroup[] = [
   {
     heading: 'Growth',
     items: [
-      { path: '/growth', label: 'Rebook / Win-back / Birthdays', icon: Sparkles, roles: ['ADMIN', 'MANAGER'] },
-      { path: '/referrals', label: 'Referrals', icon: Gift, roles: ['ADMIN', 'MANAGER'] },
+      { path: '/growth', label: 'Rebook / Win-back / Birthdays', icon: Sparkles, roles: ['ADMIN', 'MANAGER'], requiresFeature: 'growthKit' },
+      { path: '/referrals', label: 'Referrals', icon: Gift, roles: ['ADMIN', 'MANAGER'], requiresFeature: 'referrals' },
       { path: '/notification-templates', label: 'Message Templates', icon: MessageSquare, roles: ['ADMIN', 'MANAGER'] },
     ],
   },
@@ -265,8 +267,12 @@ export default function DashboardLayout() {
 }
 
 function SidebarLink({ item, onClick }: { item: any; onClick: () => void }) {
+  const { organization } = useOrganization();
   // Only Staff shows the unverified-count red dot for now.
   const showUnverifiedBadge = item.path === '/staff';
+  // Show a small crown if the caller's plan doesn't include this feature —
+  // click still works and lands on the page, where the 402 handler kicks in.
+  const locked = item.requiresFeature ? !planIncludes(organization?.plan, item.requiresFeature) : false;
   const { data: unverifiedCount = 0 } = useQuery({
     queryKey: ['staff-unverified-count'],
     queryFn: async () => {
@@ -289,6 +295,9 @@ function SidebarLink({ item, onClick }: { item: any; onClick: () => void }) {
     >
       <item.icon className="w-5 h-5 flex-shrink-0" />
       <span className="flex-1">{item.label}</span>
+      {locked && (
+        <Crown className="w-3.5 h-3.5 text-amber-500" aria-label="Upgrade required" />
+      )}
       {showUnverifiedBadge && unverifiedCount > 0 && (
         <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-500 text-white rounded-full">
           {unverifiedCount}
