@@ -15,6 +15,7 @@ datasource db {
 // ============================================
 
 enum UserRole {
+  SUPERADMIN // Aveon staff — cross-tenant support & billing tools
   OWNER      // Signup creator — owns the Organization
   ADMIN
   MANAGER

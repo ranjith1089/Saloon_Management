@@ -26,6 +26,7 @@ import publicRoutes from './public.routes';
 import organizationRoutes from './organization.routes';
 import billingRoutes from './billing.routes';
 import webhooksRoutes from './webhooks.routes';
+import superAdminRoutes from './super-admin.routes';
 
 const router = Router();
 
@@ -77,5 +78,6 @@ router.use('/public', publicRoutes);
 router.use('/organizations', organizationRoutes);
 router.use('/billing', billingRoutes);
 router.use('/webhooks', webhooksRoutes);
+router.use('/super-admin', superAdminRoutes);
 
 export default router;

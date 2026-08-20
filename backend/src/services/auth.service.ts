@@ -123,6 +123,19 @@ export class AuthService {
       throw new UnauthorizedError('Invalid email or password');
     }
 
+    // Ship 5A: promote users listed in SUPERADMIN_EMAILS on login. Keeps
+    // the elevation in the database (visible to audit) rather than living
+    // only in memory each request.
+    const superadminEmails = (process.env.SUPERADMIN_EMAILS || '')
+      .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+    if (superadminEmails.includes(user.email.toLowerCase()) && user.role !== 'SUPERADMIN') {
+      const promoted = await prisma.user.update({
+        where: { id: user.id },
+        data:  { role: 'SUPERADMIN' },
+      });
+      user.role = promoted.role;
+    }
+
     const tokens = await this.generateTokens(user.id, user.email, user.role, user.organizationId);
 
     return {

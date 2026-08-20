@@ -107,6 +107,12 @@ const adminMenuGroups: MenuGroup[] = [
       { path: '/settings', label: 'Settings', icon: Settings },
     ],
   },
+  {
+    heading: 'Aveon',
+    items: [
+      { path: '/super-admin', label: 'Super Admin', icon: ShieldCheck, roles: ['SUPERADMIN'] },
+    ],
+  },
 ];
 
 // Customer portal — a small friendly menu focused on their own things.

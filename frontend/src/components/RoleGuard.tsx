@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 
 interface Props {
-  allow: Array<'ADMIN' | 'MANAGER' | 'STAFF' | 'CUSTOMER'>;
+  allow: Array<'SUPERADMIN' | 'OWNER' | 'ADMIN' | 'MANAGER' | 'STAFF' | 'CUSTOMER'>;
   children: React.ReactNode;
   fallback?: string;
 }
