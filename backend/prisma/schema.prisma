@@ -164,6 +164,65 @@ model Organization {
   @@map("organizations")
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// Razorpay-backed subscription — one active row per org at a time.
+// Cancelled / previous subscriptions stay in the table as history.
+model Subscription {
+  id                     String             @id @default(uuid())
+  organizationId         String
+  plan                   SubscriptionPlan
+  status                 SubscriptionStatus @default(ACTIVE)
+  razorpaySubscriptionId String             @unique
+  razorpayPlanId         String
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelledAt            DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  invoices Invoice[]
+
+  @@index([organizationId])
+  @@index([razorpaySubscriptionId])
+  @@map("subscriptions")
+}
+
+// Historical invoices — populated from Razorpay webhooks.
+model Invoice {
+  id                String        @id @default(uuid())
+  organizationId    String
+  subscriptionId    String?
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("INR")
+  status            InvoiceStatus @default(PENDING)
+  razorpayInvoiceId String?       @unique
+  razorpayPaymentId String?
+  issuedAt          DateTime      @default(now())
+  paidAt            DateTime?
+  pdfUrl            String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([organizationId])
+  @@index([subscriptionId])
+  @@map("invoices")
+}
+
 // Rolling monthly usage counter — one row per (org, calendar month).
 // Ship 4B uses it for WhatsApp message quotas; future ships can add SMS,
 // storage, API calls the same way. No cron needed — a new row is upserted

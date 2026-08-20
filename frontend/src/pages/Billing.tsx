@@ -7,15 +7,47 @@
  */
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Loader2, Sparkles, Crown, Zap, Building2, MessageCircle, AlertTriangle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { CheckCircle2, Loader2, Sparkles, Crown, Zap, Building2, MessageCircle, AlertTriangle, ExternalLink, Receipt } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { PLANS, CURRENCY_SYMBOL, PlanCode } from '@/config/plans';
+import api from '@/services/api';
 
 const WHATSAPP = '918754006483';
+
+interface BillingStatus {
+  configured: boolean;
+  webhookConfigured: boolean;
+  plansConfigured: Record<string, boolean>;
+}
+interface InvoiceRow {
+  id: string;
+  amount: string | number;
+  currency: string;
+  status: 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED';
+  issuedAt: string;
+  paidAt?: string | null;
+  pdfUrl?: string | null;
+}
 
 export default function Billing() {
   const { organization: org, isLoading } = useOrganization();
   const [busy, setBusy] = useState<PlanCode | null>(null);
+
+  // Is Razorpay live on the server right now?
+  const statusQ = useQuery<BillingStatus>({
+    queryKey: ['billing-status'],
+    queryFn: async () => (await api.get('/billing/status')).data.data,
+    staleTime: 5 * 60_000,
+  });
+  const invoicesQ = useQuery<InvoiceRow[]>({
+    queryKey: ['billing-invoices'],
+    queryFn: async () => (await api.get('/billing/invoices')).data.data,
+    enabled: !!statusQ.data?.configured,
+    staleTime: 60_000,
+  });
+  const canCharge = !!statusQ.data?.configured;
 
   if (isLoading || !org) {
     return (
@@ -31,16 +63,28 @@ export default function Billing() {
   const trialDays = org.trialDaysRemaining ?? 0;
   const expired = org.trialExpired;
 
-  const requestUpgrade = (plan: PlanCode) => {
+  const requestUpgrade = async (plan: PlanCode) => {
     setBusy(plan);
-    const text = encodeURIComponent(
-      `Hi Aveon team! I'd like to upgrade "${org.name}" to the ${plan} plan. My org id: ${org.slug}.`
-    );
-    // Small delay so the button shows the spinner briefly — feels responsive
-    setTimeout(() => {
-      window.open(`https://wa.me/${WHATSAPP}?text=${text}`, '_blank');
+    try {
+      if (canCharge && statusQ.data?.plansConfigured?.[plan]) {
+        // Live path — create a Razorpay Subscription, redirect to hosted checkout.
+        const res = await api.post('/billing/subscribe', { plan });
+        const shortUrl = res.data?.data?.shortUrl;
+        if (!shortUrl) throw new Error('No checkout URL returned');
+        window.open(shortUrl, '_blank');
+        toast.success('Checkout opened in a new tab — complete payment there.');
+      } else {
+        // Ship-3A WhatsApp fallback
+        const text = encodeURIComponent(
+          `Hi Aveon team! I'd like to upgrade "${org.name}" to the ${plan} plan. My org id: ${org.slug}.`
+        );
+        window.open(`https://wa.me/${WHATSAPP}?text=${text}`, '_blank');
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Could not start upgrade');
+    } finally {
       setBusy(null);
-    }, 200);
+    }
   };
 
   return (
@@ -146,17 +190,66 @@ export default function Billing() {
                 >
                   {busy === p.code ? <Loader2 className="w-4 h-4 animate-spin" /> :
                    isCurrent ? <><CheckCircle2 className="w-4 h-4" /> Current plan</> :
-                               <><MessageCircle className="w-4 h-4" /> Upgrade via WhatsApp</>}
+                   canCharge && statusQ.data?.plansConfigured?.[p.code]
+                     ? <><ExternalLink className="w-4 h-4" /> Subscribe · pay online</>
+                     : <><MessageCircle className="w-4 h-4" /> Upgrade via WhatsApp</>}
                 </button>
               </motion.div>
             );
           })}
         </div>
         <p className="text-xs text-gray-500 mt-4">
-          Automated card / UPI checkout is coming — for now, tap "Upgrade" and our team
-          activates your plan within an hour. No credit card locked in until then.
+          {canCharge
+            ? 'Card / UPI checkout is powered by Razorpay. You can cancel any time before the next cycle.'
+            : 'Automated card / UPI checkout is coming — for now, tap "Upgrade" and our team activates your plan within an hour. No credit card locked in until then.'}
         </p>
       </div>
+
+      {/* Invoice history — only shows once Razorpay is live and there's at least one row. */}
+      {canCharge && (invoicesQ.data?.length ?? 0) > 0 && (
+        <div className="card !p-5">
+          <div className="font-semibold mb-3 flex items-center gap-2">
+            <Receipt className="w-4 h-4 text-gray-500" /> Invoice history
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left">
+                  <th className="py-2 pr-4 font-semibold text-xs uppercase tracking-widest text-gray-500">Date</th>
+                  <th className="py-2 pr-4 font-semibold text-xs uppercase tracking-widest text-gray-500">Amount</th>
+                  <th className="py-2 pr-4 font-semibold text-xs uppercase tracking-widest text-gray-500">Status</th>
+                  <th className="py-2 pr-4"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(invoicesQ.data || []).map((inv) => (
+                  <tr key={inv.id} className="border-b border-gray-100 last:border-0">
+                    <td className="py-2 pr-4">{new Date(inv.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                    <td className="py-2 pr-4 font-medium">
+                      {inv.currency === 'INR' ? '₹' : inv.currency + ' '}
+                      {Number(inv.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-2 pr-4">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        inv.status === 'PAID'   ? 'bg-green-100 text-green-700' :
+                        inv.status === 'FAILED' ? 'bg-red-100 text-red-700'   :
+                                                  'bg-amber-100 text-amber-700'
+                      }`}>{inv.status}</span>
+                    </td>
+                    <td className="py-2 pr-4 text-right">
+                      {inv.pdfUrl && (
+                        <a href={inv.pdfUrl} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline text-xs font-semibold inline-flex items-center gap-1">
+                          View <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Usage — current-month WA + branch / staff caps */}
       <div className="card !p-5">

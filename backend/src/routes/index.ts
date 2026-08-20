@@ -24,6 +24,8 @@ import referralRoutes from './referral.routes';
 import messagingRoutes from './messaging.routes';
 import publicRoutes from './public.routes';
 import organizationRoutes from './organization.routes';
+import billingRoutes from './billing.routes';
+import webhooksRoutes from './webhooks.routes';
 
 const router = Router();
 
@@ -73,5 +75,7 @@ router.use('/referrals', referralRoutes);
 router.use('/messaging', messagingRoutes);
 router.use('/public', publicRoutes);
 router.use('/organizations', organizationRoutes);
+router.use('/billing', billingRoutes);
+router.use('/webhooks', webhooksRoutes);
 
 export default router;
