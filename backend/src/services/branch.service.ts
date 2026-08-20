@@ -1,8 +1,10 @@
 import prisma from '../config/database';
 import { NotFoundError } from '../utils/ApiError';
+import { UsageService } from './usage.service';
 
 export class BranchService {
   static async create(data: any) {
+    await UsageService.assertCanAddBranch();   // 402 if over plan cap
     return prisma.branch.create({
       data,
       include: {

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
-import { ApiError } from '../utils/ApiError';
+import { ApiError, PlanLimitError } from '../utils/ApiError';
 import logger from '../utils/logger';
 
 export const errorHandler = (
@@ -66,7 +66,16 @@ export const errorHandler = (
     });
   }
 
-  // Handle custom API errors
+  // Handle custom API errors — PlanLimitError carries structured details
+  // so the frontend can render an inline upgrade prompt.
+  if (err instanceof PlanLimitError) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      code:    'PLAN_LIMIT',
+      details: err.details,
+    });
+  }
   if (err instanceof ApiError) {
     return res.status(err.statusCode).json({ success: false, message: err.message });
   }

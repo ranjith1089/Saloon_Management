@@ -43,3 +43,24 @@ export class ConflictError extends ApiError {
     super(409, message);
   }
 }
+
+/**
+ * HTTP 402 Payment Required — plan limit hit. Carries structured details
+ * so the frontend can render an inline upgrade prompt showing what was
+ * blocked, the current cap, and the next tier that unlocks it.
+ */
+export interface PlanLimitDetails {
+  resource: 'branches' | 'staff' | 'waMsgs';
+  currentPlan: string;
+  limit: number;
+  current: number;
+  upgradeTo: string;
+}
+
+export class PlanLimitError extends ApiError {
+  details: PlanLimitDetails;
+  constructor(details: PlanLimitDetails, message?: string) {
+    super(402, message || `${details.currentPlan} plan limit reached (${details.current}/${details.limit} ${details.resource}). Upgrade to ${details.upgradeTo} to continue.`);
+    this.details = details;
+  }
+}

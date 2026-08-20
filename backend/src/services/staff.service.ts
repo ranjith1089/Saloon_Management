@@ -1,9 +1,11 @@
 import bcrypt from 'bcryptjs';
 import prisma from '../config/database';
 import { NotFoundError, BadRequestError } from '../utils/ApiError';
+import { UsageService } from './usage.service';
 
 export class StaffService {
   static async create(data: any) {
+    await UsageService.assertCanAddStaff();   // 402 if over plan cap
     const existingUser = await prisma.user.findUnique({ where: { email: data.email } });
     if (existingUser) throw new BadRequestError('Email already registered');
 
