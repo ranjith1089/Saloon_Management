@@ -99,7 +99,17 @@ api.interceptors.response.use(
       }
     }
 
-    if (error.response?.status !== 401) {
+    // Plan-limit (402) gets a richer toast — the message is already the
+    // "STARTER plan limit reached (1/1 branches). Upgrade to GROWTH…"
+    // string built server-side, so we just need to invite the click.
+    if (error.response?.status === 402 && error.response?.data?.code === 'PLAN_LIMIT') {
+      toast.error(
+        `${message}\nOpen Billing to upgrade.`,
+        { duration: 6000, id: 'plan-limit' }
+      );
+      // Notify any listener (e.g. useOrganization) so it can refresh caps.
+      window.dispatchEvent(new CustomEvent('plan-limit', { detail: error.response.data.details }));
+    } else if (error.response?.status !== 401) {
       toast.error(message);
     }
     return Promise.reject(error);

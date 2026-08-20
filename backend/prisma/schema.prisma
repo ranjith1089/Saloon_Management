@@ -158,9 +158,30 @@ model Organization {
 
   users    User[]
   branches Branch[]
+  meters   UsageMeter[]
 
   @@index([slug])
   @@map("organizations")
+}
+
+// Rolling monthly usage counter — one row per (org, calendar month).
+// Ship 4B uses it for WhatsApp message quotas; future ships can add SMS,
+// storage, API calls the same way. No cron needed — a new row is upserted
+// for the current month on first message; last month's row is left in
+// place as historical audit data.
+model UsageMeter {
+  id             String   @id @default(uuid())
+  organizationId String
+  month          String                    // "YYYY-MM" — cheap to filter, sortable
+  waMsgs         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, month])
+  @@index([organizationId])
+  @@map("usage_meters")
 }
 
 // ============================================

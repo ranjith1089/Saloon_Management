@@ -17,6 +17,12 @@ export interface Organization {
   country?: string | null;
   currency?: string;
   _count?: { users: number; branches: number };
+  usage?: {
+    waMsgsThisMonth: number;
+    waMsgsCap:       number | null;   // null = unlimited (no PRO plan currently exceeds Infinity but stays defensive)
+    branchesCap:     number | null;
+    staffCap:        number | null;
+  };
 }
 
 export function useOrganization() {

@@ -158,23 +158,32 @@ export default function Billing() {
         </p>
       </div>
 
-      {/* Limits card */}
+      {/* Usage — current-month WA + branch / staff caps */}
       <div className="card !p-5">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-gray-100 text-gray-700 flex items-center justify-center flex-shrink-0">
-            <Building2 className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="font-semibold">Your usage</div>
-            <div className="text-sm text-gray-600 mt-1">
-              {org._count?.branches ?? 0} branch{org._count?.branches === 1 ? '' : 'es'} ·{' '}
-              {org._count?.users ?? 0} team member{org._count?.users === 1 ? '' : 's'}
-            </div>
-          </div>
+        <div className="font-semibold mb-3 flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-gray-500" /> Your usage this month
+        </div>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <UsageBar
+            label="Branches"
+            used={org._count?.branches ?? 0}
+            cap={org.usage?.branchesCap ?? null}
+          />
+          <UsageBar
+            label="Team members"
+            used={org._count?.users ?? 0}
+            cap={org.usage?.staffCap ?? null}
+          />
+          <UsageBar
+            label="WhatsApp msgs"
+            used={org.usage?.waMsgsThisMonth ?? 0}
+            cap={org.usage?.waMsgsCap ?? null}
+          />
         </div>
       </div>
 
       {/* Contact */}
+      {null /* keep spacing */}
       <div className="rounded-2xl bg-gray-900 text-white p-6 flex items-start gap-4">
         <MessageCircle className="w-8 h-8 text-primary-400 flex-shrink-0" />
         <div>
@@ -191,6 +200,26 @@ export default function Billing() {
         >
           Chat
         </a>
+      </div>
+    </div>
+  );
+}
+
+// Small usage bar. Unlimited → shows the "∞" glyph and no meter.
+function UsageBar({ label, used, cap }: { label: string; used: number; cap: number | null }) {
+  const unlimited = cap === null;
+  const pct = unlimited ? 0 : Math.min(100, Math.round((used / Math.max(cap!, 1)) * 100));
+  const tone = pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-primary-600';
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="text-xs uppercase font-semibold tracking-widest text-gray-500">{label}</span>
+        <span className="text-xs font-semibold text-gray-700">
+          {used.toLocaleString('en-IN')} {unlimited ? '/ ∞' : `/ ${cap!.toLocaleString('en-IN')}`}
+        </span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        {!unlimited && <div className={`h-full ${tone} transition-all`} style={{ width: `${pct}%` }} />}
       </div>
     </div>
   );

@@ -1,5 +1,7 @@
 import { whatsappConfig, isWhatsAppConfigured } from '../config/whatsapp';
 import logger from '../utils/logger';
+import { UsageService } from './usage.service';
+import { PlanLimitError } from '../utils/ApiError';
 
 /**
  * Normalise an Indian-first phone number to the E.164 digits string
@@ -64,12 +66,18 @@ export class WhatsAppService {
     if (!isWhatsAppConfigured) return { ok: false, skipped: true, error: 'not configured' };
     const msisdn = normaliseMsisdn(to);
     if (!msisdn) return { ok: false, error: 'invalid phone number' };
-    return postJson({
+    // Plan quota — throws PlanLimitError (402) if over. Best-effort: if
+    // the check itself blows up (no tenant frame, e.g. cron), just skip.
+    try { await UsageService.assertWithinWaQuota(); }
+    catch (e) { if (e instanceof PlanLimitError) throw e; }
+    const result = await postJson({
       messaging_product: 'whatsapp',
       to: msisdn,
       type: 'text',
       text: { body },
     });
+    if (result.ok) await UsageService.recordWaMessage();
+    return result;
   }
 
   /**
@@ -87,7 +95,9 @@ export class WhatsAppService {
     if (!isWhatsAppConfigured) return { ok: false, skipped: true, error: 'not configured' };
     const msisdn = normaliseMsisdn(to);
     if (!msisdn) return { ok: false, error: 'invalid phone number' };
-    return postJson({
+    try { await UsageService.assertWithinWaQuota(); }
+    catch (e) { if (e instanceof PlanLimitError) throw e; }
+    const result = await postJson({
       messaging_product: 'whatsapp',
       to: msisdn,
       type: 'template',
@@ -104,5 +114,7 @@ export class WhatsAppService {
           : [],
       },
     });
+    if (result.ok) await UsageService.recordWaMessage();
+    return result;
   }
 }

@@ -17,6 +17,12 @@ import { PLAN_LIMITS, nextTier } from '../config/plans';
 import { PlanLimitError, ForbiddenError, NotFoundError } from '../utils/ApiError';
 import { SubscriptionPlan } from '@prisma/client';
 
+/** Current calendar month in the format the UsageMeter unique key expects. */
+function currentMonth(): string {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 async function currentOrg() {
   const orgId = getCurrentOrgId();
   if (!orgId) throw new ForbiddenError('No tenant context');
@@ -60,6 +66,70 @@ export class UsageService {
         upgradeTo:   nextTier(org.plan as SubscriptionPlan),
       });
     }
+  }
+
+  /**
+   * WhatsApp message quota — throws when this month's meter is at the
+   * plan cap. Call BEFORE the send; if the send fails the meter isn't
+   * incremented (see recordWaMessage below).
+   */
+  static async assertWithinWaQuota() {
+    const org = await currentOrg();
+    const limits = PLAN_LIMITS[org.plan as SubscriptionPlan];
+    if (!Number.isFinite(limits.waMsgs)) return;
+
+    const month = currentMonth();
+    const meter = await basePrisma.usageMeter.findUnique({
+      where: { organizationId_month: { organizationId: org.id, month } },
+    });
+    const used = meter?.waMsgs ?? 0;
+    if (used >= limits.waMsgs) {
+      throw new PlanLimitError({
+        resource:    'waMsgs',
+        currentPlan: org.plan,
+        limit:       limits.waMsgs,
+        current:     used,
+        upgradeTo:   nextTier(org.plan as SubscriptionPlan),
+      });
+    }
+  }
+
+  /**
+   * Increment the WhatsApp meter after a successful send. Called
+   * post-send (not in a transaction) so a failed API call doesn't
+   * burn quota. Best-effort — if the write fails we log and move on
+   * rather than penalise the customer with a failed booking flow.
+   */
+  static async recordWaMessage(orgId?: string) {
+    const targetOrgId = orgId ?? getCurrentOrgId();
+    if (!targetOrgId) return;
+    const month = currentMonth();
+    try {
+      await basePrisma.usageMeter.upsert({
+        where:  { organizationId_month: { organizationId: targetOrgId, month } },
+        update: { waMsgs: { increment: 1 } },
+        create: { organizationId: targetOrgId, month, waMsgs: 1 },
+      });
+    } catch (err) {
+      // Non-fatal — meter drift is preferable to a failed send-side flow.
+      // eslint-disable-next-line no-console
+      console.error('UsageService.recordWaMessage failed', err);
+    }
+  }
+
+  /**
+   * Read the current-month meter (WA msgs used). Used by the Billing
+   * page to render a usage bar. Never throws — returns 0 if there's
+   * no meter row yet.
+   */
+  static async getCurrentUsage() {
+    const orgId = getCurrentOrgId();
+    if (!orgId) return { waMsgs: 0, month: currentMonth() };
+    const month = currentMonth();
+    const meter = await basePrisma.usageMeter.findUnique({
+      where: { organizationId_month: { organizationId: orgId, month } },
+    });
+    return { waMsgs: meter?.waMsgs ?? 0, month };
   }
 
   /**

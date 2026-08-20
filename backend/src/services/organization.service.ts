@@ -8,6 +8,9 @@ import prisma from '../config/database';
 import { getCurrentOrgId } from '../config/tenantContext';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../utils/ApiError';
 import { isReserved, normaliseSlug } from '../utils/slug';
+import { UsageService } from './usage.service';
+import { PLAN_LIMITS } from '../config/plans';
+import { SubscriptionPlan } from '@prisma/client';
 
 export class OrganizationService {
   /** Return the current tenant + owner + counts. Used by the wizard + billing UI. */
@@ -31,7 +34,22 @@ export class OrganizationService {
         : null;
     const trialExpired = org.plan === 'TRIAL' && org.trialEndsAt !== null && org.trialEndsAt.getTime() < now;
 
-    return { ...org, trialDaysRemaining, trialExpired };
+    // Current-month usage + this plan's caps so the Billing page can
+    // draw progress bars without another round trip.
+    const usage  = await UsageService.getCurrentUsage();
+    const limits = PLAN_LIMITS[org.plan as SubscriptionPlan];
+
+    return {
+      ...org,
+      trialDaysRemaining,
+      trialExpired,
+      usage: {
+        waMsgsThisMonth: usage.waMsgs,
+        waMsgsCap:       Number.isFinite(limits.waMsgs) ? limits.waMsgs : null,
+        branchesCap:     Number.isFinite(limits.branches) ? limits.branches : null,
+        staffCap:        Number.isFinite(limits.staff) ? limits.staff : null,
+      },
+    };
   }
 
   /**
