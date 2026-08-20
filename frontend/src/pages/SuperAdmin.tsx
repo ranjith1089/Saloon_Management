@@ -11,9 +11,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import {
   Search, Loader2, ShieldCheck, TrendingUp, Users, AlertTriangle,
-  Building2, Crown, MoreHorizontal, X, ExternalLink,
+  Building2, Crown, MoreHorizontal, X, ExternalLink, UserCog,
 } from 'lucide-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/store/authStore';
+import { stashOriginalSession } from '@/components/ImpersonationBanner';
 
 const PLANS = ['TRIAL', 'STARTER', 'GROWTH', 'PRO'] as const;
 const STATUSES = ['ACTIVE', 'SUSPENDED', 'DELETED'] as const;
@@ -218,11 +220,24 @@ function SummaryTile({ icon: Icon, label, value, tone, sub }: any) {
 // ---------------------------------------------------------------------------
 function OrgDrawer({ orgId, onClose }: { orgId: string; onClose: () => void }) {
   const qc = useQueryClient();
+  const { setAuth } = useAuthStore();
   const detailQ = useQuery({
     queryKey: ['sa-org', orgId],
     queryFn: async () => (await api.get(`/super-admin/organizations/${orgId}`)).data.data,
   });
   const org = detailQ.data;
+
+  const impersonate = useMutation({
+    mutationFn: async () => (await api.post(`/super-admin/organizations/${orgId}/impersonate`)).data.data,
+    onSuccess: (data) => {
+      // Stash the current super-admin session so "Return to admin" can restore it.
+      stashOriginalSession();
+      setAuth(data.user, data.accessToken, data.refreshToken);
+      toast.success(`Impersonating ${data.user.email}`);
+      window.location.href = '/dashboard';
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Could not impersonate'),
+  });
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ['sa-summary'] });
@@ -294,6 +309,24 @@ function OrgDrawer({ orgId, onClose }: { orgId: string; onClose: () => void }) {
               <div>WhatsApp: <span className="tabular-nums font-semibold">{org.usage.waMsgsThisMonth}</span> / {org.usage.waMsgsCap ?? '∞'}</div>
               <div>Branches: <span className="tabular-nums font-semibold">{org._count.branches}</span> / {org.usage.branchesCap ?? '∞'}</div>
               <div>Staff:    <span className="tabular-nums font-semibold">{org._count.users}</span>   / {org.usage.staffCap ?? '∞'}</div>
+            </div>
+
+            {/* Impersonate */}
+            <div className="space-y-2">
+              <div className="text-xs uppercase font-semibold tracking-widest text-gray-500">Support</div>
+              <button
+                onClick={() => {
+                  if (confirm(`Impersonate the owner of ${org.name}? Your actions will be attributed to you in the audit log.`)) {
+                    impersonate.mutate();
+                  }
+                }}
+                disabled={impersonate.isPending || org.isDefault || !org.owner}
+                className="w-full text-sm font-semibold py-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+              >
+                {impersonate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserCog className="w-4 h-4" />}
+                Impersonate owner
+              </button>
+              {!org.owner && <p className="text-[11px] text-gray-500">This organization has no owner user to impersonate.</p>}
             </div>
 
             {/* Actions */}

@@ -13,6 +13,7 @@ import { runAsSystem } from '../config/tenantContext';
 import { NotFoundError, BadRequestError } from '../utils/ApiError';
 import { SubscriptionPlan, OrganizationStatus } from '@prisma/client';
 import { PLAN_LIMITS } from '../config/plans';
+import { generateAccessToken, generateRefreshToken, JwtPayload } from '../utils/jwt';
 
 const DEFAULT_ORG_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -149,6 +150,16 @@ export class AdminService {
     });
   }
 
+  /** Recent super-admin actions across the platform. */
+  static async recentAuditLog(limit = 100) {
+    return runAsSystem(() =>
+      basePrisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take:    limit,
+      }),
+    );
+  }
+
   /** Manually change a tenant's plan. Bypasses Razorpay — use for support / comps. */
   static async changePlan(orgId: string, plan: SubscriptionPlan) {
     return runAsSystem(async () => {
@@ -179,6 +190,46 @@ export class AdminService {
         where: { id: orgId },
         data:  { plan: 'TRIAL', trialEndsAt: next },
       });
+    });
+  }
+
+  /**
+   * Issue an impersonation token pair for the owner of the target org.
+   * The JWTs carry the target user's identity + role so the whole app
+   * treats them as if they logged in, plus an `act` claim so the frontend
+   * (and future backend audit checks) can see who's actually driving.
+   * Caller is expected to be SUPERADMIN — enforced by the route guard.
+   */
+  static async impersonateOrgOwner(orgId: string, actor: { userId: string; email: string }) {
+    return runAsSystem(async () => {
+      const org = await basePrisma.organization.findUnique({ where: { id: orgId } });
+      if (!org) throw new NotFoundError('Organization not found');
+      if (!org.ownerUserId) {
+        // Fall back to the first non-customer user in the org so support
+        // works even for orgs whose owner row was somehow orphaned.
+        const anyStaff = await basePrisma.user.findFirst({
+          where: { organizationId: org.id, role: { in: ['OWNER', 'ADMIN', 'MANAGER', 'STAFF'] } },
+          orderBy: { createdAt: 'asc' },
+        });
+        if (!anyStaff) throw new NotFoundError('No team user found in this organization');
+        org.ownerUserId = anyStaff.id;
+      }
+      const target = await basePrisma.user.findUnique({
+        where:   { id: org.ownerUserId },
+        include: { profile: true },
+      });
+      if (!target) throw new NotFoundError('Owner user not found');
+
+      const payload: JwtPayload = {
+        userId:         target.id,
+        email:          target.email,
+        role:           target.role,
+        organizationId: target.organizationId,
+        act:            { userId: actor.userId, email: actor.email },
+      };
+      const accessToken  = generateAccessToken(payload);
+      const refreshToken = generateRefreshToken(payload);
+      return { user: { ...target, passwordHash: undefined }, accessToken, refreshToken, organization: org };
     });
   }
 

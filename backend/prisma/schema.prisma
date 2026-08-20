@@ -165,6 +165,27 @@ model Organization {
   @@map("organizations")
 }
 
+// Audit log — Ship 5B onwards. Every super-admin action (impersonate,
+// plan change, suspend, extend trial) writes one row here. Never rewritten,
+// never deleted. Read from the super-admin UI for accountability.
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String                       // the user who did it
+  actorEmail String                       // captured at write time in case the user is deleted later
+  action     String                       // e.g. "impersonate", "plan.change", "trial.extend"
+  targetType String?                      // "Organization" | "User" | ...
+  targetId   String?
+  meta       Json?                        // action-specific structured payload
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE

@@ -6,6 +6,7 @@ import { useBranding } from '@/hooks/useBranding';
 import { useOrganization } from '@/hooks/useOrganization';
 import { planIncludes } from '@/config/plans';
 import TrialBanner from '@/components/TrialBanner';
+import ImpersonationBanner from '@/components/ImpersonationBanner';
 import {
   LayoutDashboard,
   Calendar,
@@ -259,6 +260,9 @@ export default function DashboardLayout() {
             )}
           </div>
         </header>
+
+        {/* Impersonation banner — highest priority, sticks to the top */}
+        <ImpersonationBanner />
 
         {/* Trial banner — sits above every page's content when plan=TRIAL */}
         <TrialBanner />

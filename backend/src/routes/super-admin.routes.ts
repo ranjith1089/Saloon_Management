@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { AdminService } from '../services/admin.service';
+import { AuditService } from '../services/audit.service';
 import { authenticate, authorize } from '../middlewares/auth';
 import { validate } from '../middlewares/validate';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -35,12 +36,38 @@ router.get('/organizations/:id', asyncHandler(async (req, res) => {
   return ApiResponse.success(res, 'ok', org);
 }));
 
+// POST /super-admin/organizations/:id/impersonate — audit-logged
+router.post('/organizations/:id/impersonate', asyncHandler(async (req, res) => {
+  const actor = req.user!;
+  const out = await AdminService.impersonateOrgOwner(req.params.id, {
+    userId: actor.userId,
+    email:  actor.email,
+  });
+  await AuditService.write({
+    actorId:    actor.userId,
+    actorEmail: actor.email,
+    action:     'impersonate',
+    targetType: 'Organization',
+    targetId:   req.params.id,
+    meta:       { targetUserId: out.user.id, orgSlug: out.organization.slug },
+    ip:         req.ip,
+    userAgent:  req.headers['user-agent'] || undefined,
+  });
+  return ApiResponse.success(res, 'Impersonation token issued', out);
+}));
+
 // PATCH /super-admin/organizations/:id/plan
 const planSchema = z.object({
   body: z.object({ plan: z.enum(['TRIAL', 'STARTER', 'GROWTH', 'PRO']) }),
 });
 router.patch('/organizations/:id/plan', validate(planSchema), asyncHandler(async (req, res) => {
   const org = await AdminService.changePlan(req.params.id, req.body.plan as SubscriptionPlan);
+  await AuditService.write({
+    actorId: req.user!.userId, actorEmail: req.user!.email,
+    action: 'plan.change', targetType: 'Organization', targetId: req.params.id,
+    meta: { newPlan: req.body.plan },
+    ip: req.ip, userAgent: req.headers['user-agent'] || undefined,
+  });
   return ApiResponse.success(res, 'Plan updated', org);
 }));
 
@@ -50,6 +77,12 @@ const extendSchema = z.object({
 });
 router.post('/organizations/:id/extend-trial', validate(extendSchema), asyncHandler(async (req, res) => {
   const org = await AdminService.extendTrial(req.params.id, req.body.days);
+  await AuditService.write({
+    actorId: req.user!.userId, actorEmail: req.user!.email,
+    action: 'trial.extend', targetType: 'Organization', targetId: req.params.id,
+    meta: { days: req.body.days },
+    ip: req.ip, userAgent: req.headers['user-agent'] || undefined,
+  });
   return ApiResponse.success(res, 'Trial extended', org);
 }));
 
@@ -59,7 +92,19 @@ const statusSchema = z.object({
 });
 router.patch('/organizations/:id/status', validate(statusSchema), asyncHandler(async (req, res) => {
   const org = await AdminService.setStatus(req.params.id, req.body.status as OrganizationStatus);
+  await AuditService.write({
+    actorId: req.user!.userId, actorEmail: req.user!.email,
+    action: 'status.change', targetType: 'Organization', targetId: req.params.id,
+    meta: { newStatus: req.body.status },
+    ip: req.ip, userAgent: req.headers['user-agent'] || undefined,
+  });
   return ApiResponse.success(res, 'Status updated', org);
+}));
+
+// GET /super-admin/audit-log — recent super-admin actions
+router.get('/audit-log', asyncHandler(async (_req, res) => {
+  const rows = await AdminService.recentAuditLog();
+  return ApiResponse.success(res, 'ok', rows);
 }));
 
 export default router;
