@@ -37,6 +37,8 @@ export default function MyBookings() {
       queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-home'] });
     },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.message || 'Could not cancel this booking'),
   });
 
   const bookings = data || [];
@@ -142,16 +144,23 @@ export default function MyBookings() {
 
                   <div className="text-right">
                     <div className="text-lg font-semibold text-primary-600">₹{Number(b.totalAmount).toLocaleString()}</div>
-                    {canCancel(b) && (
+                    {canCancel(b) ? (
                       <button
+                        disabled={cancel.isPending}
                         onClick={() => {
                           const reason = prompt('Reason for cancelling? (optional)') || 'Cancelled by customer';
                           cancel.mutate({ id: b.id, reason });
                         }}
-                        className="mt-2 text-xs text-red-600 hover:underline inline-flex items-center gap-1"
+                        className="mt-2 text-xs text-red-600 hover:underline inline-flex items-center gap-1 disabled:opacity-50"
                       >
                         <Ban className="w-3 h-3" /> Cancel
                       </button>
+                    ) : (
+                      !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(b.status) && (
+                        <p className="mt-2 text-[10px] text-gray-400">
+                          Can't cancel within 2h of start
+                        </p>
+                      )
                     )}
                   </div>
                 </div>

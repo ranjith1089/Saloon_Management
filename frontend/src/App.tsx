@@ -97,7 +97,7 @@ export default function App() {
         <Route path="/access-control" element={<RoleGuard allow={[...ADMIN_ONLY]}><AccessControl /></RoleGuard>} />
         <Route path="/inquiries"     element={<RoleGuard allow={[...ADMIN_MGR]}><Inquiries /></RoleGuard>} />
         <Route path="/coupons"       element={<RoleGuard allow={[...ADMIN_MGR]}><Coupons /></RoleGuard>} />
-        <Route path="/reviews" element={<Reviews />} />
+        <Route path="/reviews" element={<RoleGuard allow={[...STAFF_UP]}><Reviews /></RoleGuard>} />
         <Route path="/reports"       element={<RoleGuard allow={[...ADMIN_MGR]}><Reports /></RoleGuard>} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />

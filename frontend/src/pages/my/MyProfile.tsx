@@ -1,8 +1,34 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { Loader2, Save, User as UserIcon } from 'lucide-react';
 import api from '@/services/api';
+
+const NAME_RE = /^[A-Za-z][A-Za-z\s.'-]*$/;
+const PHONE_RE = /^[6-9]\d{9}$/;
+const POSTCODE_RE = /^\d{6}$/;
+const PLACE_RE = /^[A-Za-z][A-Za-z\s.'-]*$/;
+const ADDRESS_RE = /^[A-Za-z0-9\s,.#/'()-]*$/;
+
+// Optional text field: empty is fine, but a non-empty value must match.
+const optText = (re: RegExp, max: number, msg: string) =>
+  z.string().trim().max(max, `Max ${max} characters`)
+    .refine((v) => v === '' || re.test(v), msg);
+
+const profileSchema = z.object({
+  firstName: z.string().trim().min(2, 'Required').max(50, 'Max 50').regex(NAME_RE, 'Letters only'),
+  lastName: z.string().trim().min(2, 'Required').max(50, 'Max 50').regex(NAME_RE, 'Letters only'),
+  phone: optText(PHONE_RE, 10, 'Enter a valid 10-digit mobile number'),
+  address: optText(ADDRESS_RE, 255, 'Invalid characters'),
+  city: optText(PLACE_RE, 80, 'Letters only'),
+  state: optText(PLACE_RE, 80, 'Letters only'),
+  country: optText(PLACE_RE, 80, 'Letters only'),
+  postcode: optText(POSTCODE_RE, 6, 'Enter a valid 6-digit postcode'),
+});
+
+type ProfileForm = z.infer<typeof profileSchema>;
 
 export default function MyProfile() {
   const queryClient = useQueryClient();
@@ -12,7 +38,8 @@ export default function MyProfile() {
     queryFn: async () => (await api.get('/auth/me')).data.data,
   });
 
-  const { register, handleSubmit, formState: { isDirty, errors }, reset } = useForm({
+  const { register, handleSubmit, formState: { isDirty, errors }, reset } = useForm<ProfileForm>({
+    resolver: zodResolver(profileSchema),
     values: {
       firstName: data?.profile?.firstName || '',
       lastName: data?.profile?.lastName || '',
@@ -59,31 +86,45 @@ export default function MyProfile() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">First Name</label>
-            <input className="input" {...register('firstName', { required: true })} />
-            {errors.firstName && <p className="text-xs text-red-600 mt-1">Required</p>}
+            <input className="input" {...register('firstName')} />
+            {errors.firstName && <p className="text-xs text-red-600 mt-1">{errors.firstName.message}</p>}
           </div>
           <div>
             <label className="label">Last Name</label>
-            <input className="input" {...register('lastName', { required: true })} />
-            {errors.lastName && <p className="text-xs text-red-600 mt-1">Required</p>}
+            <input className="input" {...register('lastName')} />
+            {errors.lastName && <p className="text-xs text-red-600 mt-1">{errors.lastName.message}</p>}
           </div>
         </div>
 
         <div>
           <label className="label">Phone</label>
-          <input className="input" {...register('phone')} placeholder="+91 98765 43210" />
+          <input className="input" inputMode="numeric" maxLength={10} {...register('phone')} placeholder="10-digit mobile" />
+          {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message}</p>}
         </div>
 
         <div>
           <label className="label">Address</label>
           <input className="input" {...register('address')} />
+          {errors.address && <p className="text-xs text-red-600 mt-1">{errors.address.message}</p>}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div><label className="label">City</label><input className="input" {...register('city')} /></div>
-          <div><label className="label">State</label><input className="input" {...register('state')} /></div>
-          <div><label className="label">Country</label><input className="input" {...register('country')} /></div>
-          <div><label className="label">Postcode</label><input className="input" {...register('postcode')} /></div>
+          <div>
+            <label className="label">City</label><input className="input" {...register('city')} />
+            {errors.city && <p className="text-xs text-red-600 mt-1">{errors.city.message}</p>}
+          </div>
+          <div>
+            <label className="label">State</label><input className="input" {...register('state')} />
+            {errors.state && <p className="text-xs text-red-600 mt-1">{errors.state.message}</p>}
+          </div>
+          <div>
+            <label className="label">Country</label><input className="input" {...register('country')} />
+            {errors.country && <p className="text-xs text-red-600 mt-1">{errors.country.message}</p>}
+          </div>
+          <div>
+            <label className="label">Postcode</label><input className="input" inputMode="numeric" maxLength={6} {...register('postcode')} />
+            {errors.postcode && <p className="text-xs text-red-600 mt-1">{errors.postcode.message}</p>}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">

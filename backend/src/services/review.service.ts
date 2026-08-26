@@ -40,6 +40,7 @@ export class ReviewService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
+    if (query.customerId) where.customerId = query.customerId;
     if (query.staffId) where.staffId = query.staffId;
     if (query.serviceId) where.serviceId = query.serviceId;
     if (query.rating) where.rating = parseInt(query.rating, 10);

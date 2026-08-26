@@ -1,12 +1,27 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Receipt, Check } from 'lucide-react';
+import { Receipt, Check, Star } from 'lucide-react';
 import api from '@/services/api';
+import MyReviewModal from '@/components/my/MyReviewModal';
 
 export default function MyHistory() {
+  const [reviewBooking, setReviewBooking] = useState<any | null>(null);
+
   const { data } = useQuery({
     queryKey: ['my-bookings-history'],
     queryFn: async () => (await api.get('/bookings?limit=200&paymentStatus=PAID')).data.data as any[],
   });
+
+  // The customer's own reviews, mapped bookingId -> review, so each paid row
+  // shows either its rating or a "Rate" button.
+  const { data: reviews } = useQuery({
+    queryKey: ['my-reviews'],
+    queryFn: async () => (await api.get('/reviews?limit=200')).data.data as any,
+  });
+  const reviewByBooking: Record<string, any> = {};
+  for (const r of reviews?.reviews || reviews?.data || (Array.isArray(reviews) ? reviews : [])) {
+    if (r?.bookingId) reviewByBooking[r.bookingId] = r;
+  }
 
   const paid = (data || []).sort(
     (a, b) => new Date(b.paidAt || b.updatedAt).getTime() - new Date(a.paidAt || a.updatedAt).getTime()
@@ -46,11 +61,12 @@ export default function MyHistory() {
                 <th className="px-4 py-3 font-medium text-gray-700">Method</th>
                 <th className="px-4 py-3 font-medium text-gray-700">Reference</th>
                 <th className="px-4 py-3 font-medium text-gray-700 text-right">Amount</th>
+                <th className="px-4 py-3 font-medium text-gray-700 text-center">Review</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {paid.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-10 text-gray-500">
+                <tr><td colSpan={6} className="text-center py-10 text-gray-500">
                   <Receipt className="w-12 h-12 mx-auto text-gray-300 mb-2" />
                   No payments yet.
                 </td></tr>
@@ -75,6 +91,21 @@ export default function MyHistory() {
                     <td className="px-4 py-3 text-right font-semibold text-primary-600">
                       ₹{Number(b.totalAmount).toLocaleString()}
                     </td>
+                    <td className="px-4 py-3 text-center">
+                      {reviewByBooking[b.id] ? (
+                        <span className="inline-flex items-center gap-0.5 text-yellow-500">
+                          {reviewByBooking[b.id].rating}
+                          <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setReviewBooking(b)}
+                          className="text-xs text-primary-600 hover:underline inline-flex items-center gap-1"
+                        >
+                          <Star className="w-3.5 h-3.5" /> Rate
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}
@@ -82,6 +113,10 @@ export default function MyHistory() {
           </table>
         </div>
       </div>
+
+      {reviewBooking && (
+        <MyReviewModal booking={reviewBooking} onClose={() => setReviewBooking(null)} />
+      )}
     </div>
   );
 }

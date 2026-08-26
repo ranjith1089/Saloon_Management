@@ -24,7 +24,7 @@ export default function MyReferrals() {
     ? `${window.location.origin}/register?ref=${encodeURIComponent(code)}`
     : '';
   const shareMessage = code
-    ? `Hey! I love the service at Studie'o — sign up with my link and we both get 100 loyalty points on your first visit. ${shareUrl}`
+    ? `Hey! I love the service at Studie'o — sign up with my link and we both instantly get 100 loyalty points. ${shareUrl}`
     : '';
 
   const copy = async (text: string, label: string) => {
@@ -43,8 +43,8 @@ export default function MyReferrals() {
           <Users className="w-6 h-6" /> Refer Friends & Earn
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Share your link — when a friend signs up and completes their first visit,
-          you both earn <strong>100 loyalty points</strong>.
+          Share your link — the moment a friend signs up with your code,
+          you both instantly earn <strong>100 loyalty points</strong>.
         </p>
       </div>
 
@@ -106,10 +106,9 @@ export default function MyReferrals() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <StatTile label="Total referred" value={data?.counts?.total ?? 0} icon={<Users className="w-4 h-4" />} tone="blue" />
-            <StatTile label="Signed up (pending)" value={data?.counts?.pending ?? 0} icon={<Clock className="w-4 h-4" />} tone="yellow" />
-            <StatTile label="Completed" value={data?.counts?.completed ?? 0} icon={<CheckCircle2 className="w-4 h-4" />} tone="green" />
+            <StatTile label="Rewarded" value={data?.counts?.completed ?? 0} icon={<CheckCircle2 className="w-4 h-4" />} tone="green" />
             <StatTile label="Points earned" value={data?.rewardEarned ?? 0} icon={<Award className="w-4 h-4" />} tone="pink" />
           </div>
 

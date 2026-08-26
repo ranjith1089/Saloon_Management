@@ -87,9 +87,10 @@ export class ReferralService {
 
   /**
    * Called during registration when the register payload carried a
-   * ?ref=CODE. Creates a PENDING Referral row linking the new user
-   * (referee) to the code owner (owner). No-op if code is empty or
-   * unknown or self-referral.
+   * ?ref=CODE. Links the new user (referee) to the code owner and
+   * credits BOTH parties 100 loyalty points immediately — the reward is
+   * granted at signup, not deferred to a first visit. No-op if the code
+   * is empty, unknown, or a self-referral.
    */
   static async trackFromCode(code: string, refereeId: string) {
     if (!code) return null;
@@ -98,24 +99,47 @@ export class ReferralService {
     if (!owner) return null;
     if (owner.id === refereeId) return null;
 
-    // Already tracked?
+    // Already tracked? Don't credit twice.
     const existing = await prisma.referral.findUnique({ where: { refereeId } });
     if (existing) return existing;
 
-    return prisma.referral.create({
-      data: {
-        code: cleaned,
-        ownerId: owner.id,
-        refereeId,
-        status: 'PENDING',
-      },
+    // Create the referral as COMPLETED and credit both sides atomically.
+    // customer rows may not exist yet (direct signup) — upsert to be safe.
+    return prisma.$transaction(async (tx) => {
+      const referral = await tx.referral.create({
+        data: {
+          code: cleaned,
+          ownerId: owner.id,
+          refereeId,
+          status: 'COMPLETED',
+          rewardOwner: REWARD_OWNER,
+          rewardReferee: REWARD_REFEREE,
+          completedAt: new Date(),
+        },
+      });
+
+      await Promise.all([
+        tx.customer.upsert({
+          where: { userId: owner.id },
+          update: { loyaltyPoints: { increment: REWARD_OWNER } },
+          create: { userId: owner.id, loyaltyPoints: REWARD_OWNER },
+        }),
+        tx.customer.upsert({
+          where: { userId: refereeId },
+          update: { loyaltyPoints: { increment: REWARD_REFEREE } },
+          create: { userId: refereeId, loyaltyPoints: REWARD_REFEREE },
+        }),
+      ]);
+
+      return referral;
     });
   }
 
   /**
-   * Called after a booking flips to COMPLETED. If this is the referee's
-   * FIRST completed booking AND there's a pending referral for them,
-   * mark it COMPLETED and award loyalty points to both parties.
+   * Called after a booking flips to COMPLETED. Referral rewards are now
+   * granted at signup (see trackFromCode), so this is a no-op for the
+   * current flow — it only fires for any legacy PENDING referrals created
+   * before the credit-on-signup change, keeping them from being stranded.
    */
   static async onBookingCompleted(customerId: string, tx?: any) {
     const client = tx || prisma;
