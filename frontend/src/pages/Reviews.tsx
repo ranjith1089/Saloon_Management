@@ -10,6 +10,8 @@ export default function Reviews() {
 
   const reviews = data?.data?.reviews || [];
   const avg = data?.data?.averageRating || 0;
+  const total = data?.data?.total || 0;
+  const distribution: Record<number, number> = data?.data?.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
   return (
     <div className="space-y-6">
@@ -27,9 +29,32 @@ export default function Reviews() {
               />
             ))}
           </div>
-          <p className="text-sm text-gray-500 mt-1">{Number(avg).toFixed(1)} average rating</p>
+          <p className="text-sm text-gray-500 mt-1">
+            {Number(avg).toFixed(1)} average · {total} review{total === 1 ? '' : 's'}
+          </p>
         </div>
       </div>
+
+      {/* Rating breakdown (5★ → 1★) */}
+      {total > 0 && (
+        <div className="card max-w-md space-y-1.5">
+          {[5, 4, 3, 2, 1].map((star) => {
+            const count = distribution[star] || 0;
+            const pct = total ? Math.round((count / total) * 100) : 0;
+            return (
+              <div key={star} className="flex items-center gap-2 text-xs">
+                <span className="w-8 text-gray-600 flex items-center gap-0.5">
+                  {star} <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                </span>
+                <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full bg-yellow-400 rounded-full" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="w-8 text-right text-gray-500 tabular-nums">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {isLoading ? (
         <p className="text-center text-gray-500 py-8">Loading...</p>

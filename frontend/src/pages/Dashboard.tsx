@@ -6,6 +6,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
+import { formatBookingWhen, bookingStatusLabel, bookingStatusTone } from '@/utils/booking';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
@@ -125,14 +126,14 @@ function CustomerHome({ data, user }: { data: any; user: any }) {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium">{b.service?.name}</p>
                   <p className="text-xs text-gray-500">
-                    {new Date(b.bookingDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })} · {b.startTime} · {b.branch?.name}
+                    {formatBookingWhen(b.bookingDate, b.startTime, b.endTime)} · {b.branch?.name}
                   </p>
                   <p className="text-xs text-gray-500">
                     with {b.staff?.user?.profile?.firstName} {b.staff?.user?.profile?.lastName}
                   </p>
                 </div>
-                <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-medium">
-                  {b.status}
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${bookingStatusTone(b.status)}`}>
+                  {bookingStatusLabel(b.status)}
                 </span>
               </div>
             ))}

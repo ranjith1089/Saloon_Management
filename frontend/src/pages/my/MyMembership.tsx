@@ -1,7 +1,14 @@
-import { useQuery } from '@tanstack/react-query';
-import { Crown, CalendarDays, IndianRupee, Clock } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { Crown, CalendarDays, IndianRupee, Clock, Send, Loader2 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
+
+function planDuration(days: number) {
+  if (days % 365 === 0) return `${days / 365} year${days === 365 ? '' : 's'}`;
+  if (days % 30 === 0) return `${days / 30} month${days === 30 ? '' : 's'}`;
+  return `${days} days`;
+}
 
 export default function MyMembership() {
   const { user } = useAuthStore();
@@ -17,6 +24,33 @@ export default function MyMembership() {
   const { data: history } = useQuery({
     queryKey: ['my-memberships'],
     queryFn: async () => (await api.get('/memberships?limit=100')).data.data as any[],
+  });
+
+  // Available plans the customer can browse (read-only for CUSTOMER).
+  const { data: plans } = useQuery({
+    queryKey: ['membership-plans-browse'],
+    queryFn: async () => (await api.get('/membership-plans')).data.data as any[],
+  });
+  const activePlans = (plans || []).filter((p: any) => p.isActive);
+
+  // "Request this plan" — customers can't self-enrol (payment is at the
+  // counter), so a request is logged as an inquiry for staff to follow up.
+  const requestPlan = useMutation({
+    mutationFn: async (plan: any) => {
+      const fullName = [user?.profile?.firstName, user?.profile?.lastName].filter(Boolean).join(' ')
+        || user?.email?.split('@')[0]
+        || 'Customer';
+      return api.post('/inquiries', {
+        name: fullName,
+        email: user?.email,
+        phone: user?.profile?.phone || null,
+        subject: `Membership request: ${plan.name}`,
+        message: `${fullName} would like to enrol in the "${plan.name}" plan (₹${Number(plan.price).toLocaleString()} / ${planDuration(plan.durationDays)}). Please follow up.`,
+        source: 'membership-request',
+      });
+    },
+    onSuccess: () => toast.success('Request sent — the salon will get in touch.'),
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Could not send request'),
   });
 
   const now = Date.now();
@@ -79,7 +113,50 @@ export default function MyMembership() {
         <div className="card text-center py-12 text-gray-500">
           <Crown className="w-12 h-12 mx-auto text-gray-300 mb-2" />
           <p className="mb-1 font-medium">No active membership</p>
-          <p className="text-xs">Ask at the counter to enrol in a membership plan and unlock member pricing.</p>
+          <p className="text-xs">Browse the plans below and request one — the salon will help you enrol.</p>
+        </div>
+      )}
+
+      {/* Available plans — browse & request */}
+      {activePlans.length > 0 && (
+        <div>
+          <h2 className="font-semibold mb-3">{active ? 'Other plans' : 'Available plans'}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {activePlans.map((p: any) => {
+              const isCurrent = active?.plan?.id === p.id;
+              return (
+                <div key={p.id} className="card border-t-4" style={{ borderTopColor: p.color }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="font-bold text-lg">{p.name}</h3>
+                      {p.description && <p className="text-xs text-gray-500 mt-0.5">{p.description}</p>}
+                    </div>
+                    <Crown className="w-5 h-5 flex-shrink-0" style={{ color: p.color }} />
+                  </div>
+                  <div className="flex items-baseline gap-1 mt-3">
+                    <span className="text-2xl font-bold">₹{Number(p.price).toLocaleString()}</span>
+                    <span className="text-xs text-gray-500">/ {planDuration(p.durationDays)}</span>
+                  </div>
+                  <button
+                    disabled={isCurrent || requestPlan.isPending}
+                    onClick={() => requestPlan.mutate(p)}
+                    className="btn-primary w-full mt-4 inline-flex items-center justify-center gap-1 disabled:opacity-50"
+                  >
+                    {requestPlan.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : isCurrent ? (
+                      'Current plan'
+                    ) : (
+                      <><Send className="w-4 h-4" /> Request this plan</>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-400 mt-2">
+            Requesting a plan notifies the salon — enrolment and payment are completed at the counter.
+          </p>
         </div>
       )}
 

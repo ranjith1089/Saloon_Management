@@ -1,11 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Receipt, Check, Star } from 'lucide-react';
+import { Receipt, Check, Star, Filter, X } from 'lucide-react';
 import api from '@/services/api';
 import MyReviewModal from '@/components/my/MyReviewModal';
 
+function paymentDate(b: any) {
+  return new Date(b.paidAt || b.updatedAt || b.bookingDate);
+}
+
 export default function MyHistory() {
   const [reviewBooking, setReviewBooking] = useState<any | null>(null);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [method, setMethod] = useState('');
 
   const { data } = useQuery({
     queryKey: ['my-bookings-history'],
@@ -23,10 +30,30 @@ export default function MyHistory() {
     if (r?.bookingId) reviewByBooking[r.bookingId] = r;
   }
 
-  const paid = (data || []).sort(
-    (a, b) => new Date(b.paidAt || b.updatedAt).getTime() - new Date(a.paidAt || a.updatedAt).getTime()
+  const allPaid = (data || []).sort(
+    (a, b) => paymentDate(b).getTime() - paymentDate(a).getTime()
   );
 
+  // Distinct payment methods present, for the filter dropdown.
+  const methods = useMemo(
+    () => Array.from(new Set(allPaid.map((b) => b.paymentMethod).filter(Boolean))) as string[],
+    [allPaid]
+  );
+
+  const paid = useMemo(() => {
+    const fromTs = from ? new Date(from).setHours(0, 0, 0, 0) : null;
+    const toTs = to ? new Date(to).setHours(23, 59, 59, 999) : null;
+    return allPaid.filter((b) => {
+      const t = paymentDate(b).getTime();
+      if (fromTs !== null && t < fromTs) return false;
+      if (toTs !== null && t > toTs) return false;
+      if (method && b.paymentMethod !== method) return false;
+      return true;
+    });
+  }, [allPaid, from, to, method]);
+
+  const hasFilter = !!(from || to || method);
+  const clearFilters = () => { setFrom(''); setTo(''); setMethod(''); };
   const total = paid.reduce((s, b) => s + Number(b.totalAmount), 0);
 
   return (
@@ -41,13 +68,42 @@ export default function MyHistory() {
       <div className="card">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-500">Total spent</p>
+            <p className="text-sm text-gray-500">{hasFilter ? 'Total (filtered)' : 'Total spent'}</p>
             <p className="text-3xl font-bold tabular-nums">₹{total.toLocaleString()}</p>
             <p className="text-xs text-gray-400 mt-1">across {paid.length} payment{paid.length === 1 ? '' : 's'}</p>
           </div>
           <div className="w-14 h-14 rounded-xl bg-primary-100 text-primary-600 flex items-center justify-center">
             <Receipt className="w-7 h-7" />
           </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="card">
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="flex items-center gap-1 text-sm text-gray-500 pb-2">
+            <Filter className="w-4 h-4" /> Filter
+          </div>
+          <div>
+            <label className="label text-xs">From</label>
+            <input type="date" className="input !py-1.5" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div>
+            <label className="label text-xs">To</label>
+            <input type="date" className="input !py-1.5" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
+          </div>
+          <div>
+            <label className="label text-xs">Method</label>
+            <select className="input !py-1.5" value={method} onChange={(e) => setMethod(e.target.value)}>
+              <option value="">All methods</option>
+              {methods.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          {hasFilter && (
+            <button onClick={clearFilters} className="btn-secondary !py-1.5 text-xs inline-flex items-center gap-1 mb-0.5">
+              <X className="w-3.5 h-3.5" /> Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -68,7 +124,7 @@ export default function MyHistory() {
               {paid.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-10 text-gray-500">
                   <Receipt className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-                  No payments yet.
+                  {hasFilter ? 'No payments match these filters.' : 'No payments yet.'}
                 </td></tr>
               ) : (
                 paid.map((b) => (
@@ -80,6 +136,9 @@ export default function MyHistory() {
                       <div className="font-medium">{b.service?.name}</div>
                       <div className="text-xs text-gray-500">
                         {new Date(b.bookingDate).toLocaleDateString()} · {b.branch?.name}
+                        {b.staff?.user?.profile?.firstName && (
+                          <> · with {b.staff.user.profile.firstName} {b.staff.user.profile.lastName}</>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
