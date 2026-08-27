@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&display=swap">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Inter,system-ui,sans-serif;background:#e5e7eb;color:#111827;-webkit-font-smoothing:antialiased}
+    a{color:#b91c1c;text-decoration:none}a:hover{color:#7f1d1d}
+    .scr{width:390px;height:844px;background:#f9fafb;display:flex;flex-direction:column;overflow:hidden;position:relative}
+    .hd{padding:22px 20px 14px;background:#fff;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .brand{font-family:Fraunces,Georgia,serif;font-weight:900;font-size:20px;color:#dc2626;letter-spacing:-.01em;line-height:1}
+    .sub{font-size:11px;color:#9ca3af;margin-top:3px;font-weight:500}
+    .ava{width:38px;height:38px;border-radius:50%;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+    .ic{width:20px;height:20px;stroke:#374151;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .body{flex:1;overflow:hidden;padding:16px 16px 0;display:flex;flex-direction:column;gap:14px}
+    .card{background:#fff;border:1px solid #f3f4f6;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .pad{padding:16px}
+    .hero{background:linear-gradient(135deg,#dc2626,#991b1b);border-radius:16px;padding:18px;color:#fff;box-shadow:0 12px 26px -12px rgba(220,38,38,.5)}
+    .hlbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#fecaca;font-weight:600}
+    .hnum{font-size:30px;font-weight:800;margin-top:6px;letter-spacing:-.02em}
+    .bar{height:7px;border-radius:99px;background:rgba(255,255,255,.28);margin-top:12px;overflow:hidden}
+    .barfill{height:100%;border-radius:99px;background:#fff}
+    .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .tile{background:#fff;border:1px solid #f3f4f6;border-radius:14px;padding:13px;display:flex;align-items:center;gap:11px}
+    .tico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .tlbl{font-size:11px;color:#6b7280;font-weight:500}
+    .tval{font-size:16px;font-weight:700;margin-top:1px}
+    .sec{display:flex;align-items:center;justify-content:space-between;margin:2px 2px -2px}
+    .sect{font-size:14px;font-weight:700}
+    .seelink{font-size:12px;color:#dc2626;font-weight:600}
+    .appt{display:flex;gap:12px;padding:13px 14px;align-items:center}
+    .adate{width:46px;text-align:center;flex-shrink:0}
+    .amon{font-size:10px;text-transform:uppercase;color:#9ca3af;font-weight:600}
+    .aday{font-size:20px;font-weight:800;color:#dc2626;line-height:1.1}
+    .adow{font-size:10px;color:#9ca3af}
+    .anm{font-size:14px;font-weight:600}
+    .ameta{font-size:11.5px;color:#6b7280;margin-top:3px;display:flex;align-items:center;gap:5px}
+    .badge{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:99px;display:inline-block}
+    .b-amber{background:#fef3c7;color:#b45309}.b-blue{background:#dbeafe;color:#1d4ed8}
+    .b-green{background:#dcfce7;color:#15803d}.b-purple{background:#f3e8ff;color:#7e22ce}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#dc2626;color:#fff;font-weight:600;font-size:14px;height:48px;border-radius:12px}
+    .tab{height:64px;background:#fff;border-top:1px solid #f3f4f6;display:grid;grid-template-columns:repeat(4,1fr);align-items:center;padding-bottom:4px}
+    .ti{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10px;color:#9ca3af;font-weight:500}
+    .ti.on{color:#dc2626}
+    .ti.on .ic{stroke:#dc2626}
+    .divi{border-top:1px solid #f3f4f6}
+  </style>
+</helmet>
+<div class="scr">
+  <div class="hd">
+    <div>
+      <div class="brand">Studie&#39;o</div>
+      <div class="sub">Koramangala · Bengaluru</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="position:relative">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span style="position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:#dc2626;border:2px solid #fff"></span>
+      </div>
+      <div class="ava">SD</div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div>
+      <div style="font-size:13px;color:#6b7280">Good evening,</div>
+      <div style="font-size:19px;font-weight:800;letter-spacing:-.01em;margin-top:1px">Sahanaa Dhanapalan</div>
+    </div>
+
+    <div class="hero">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div class="hlbl">Loyalty points</div>
+          <div class="hnum">220 <span style="font-size:16px;font-weight:600;color:#fecaca">/ 500</span></div>
+        </div>
+        <svg style="width:26px;height:26px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M11.5 3.5 14 9l6 .5-4.5 4 1.4 6-5.4-3.2L6.5 19.5 8 13.5 3.5 9.5 9.5 9z"/></svg>
+      </div>
+      <div class="bar"><div class="barfill" style="width:44%"></div></div>
+      <div style="font-size:11.5px;color:#fee2e2;margin-top:9px">280 points to your next free service</div>
+    </div>
+
+    <div class="tiles">
+      <div class="tile">
+        <div class="tico" style="background:#dbeafe"><svg style="width:19px;height:19px;stroke:#1d4ed8;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        <div><div class="tlbl">Upcoming</div><div class="tval">2 visits</div></div>
+      </div>
+      <div class="tile">
+        <div class="tico" style="background:#fef3c7"><svg style="width:19px;height:19px;stroke:#b45309;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M3 8l4 4 5-6 5 6 4-4v9H3z"/></svg></div>
+        <div><div class="tlbl">Membership</div><div class="tval">Gold</div></div>
+      </div>
+    </div>
+
+    <div class="sec"><div class="sect">Upcoming appointments</div><div class="seelink">See all</div></div>
+
+    <div class="card">
+      <div class="appt">
+        <div class="adate"><div class="amon">Aug</div><div class="aday">29</div><div class="adow">Sat</div></div>
+        <div style="flex:1;min-width:0">
+          <div class="anm">Women&#39;s Haircut</div>
+          <div class="ameta"><svg style="width:13px;height:13px;stroke:#9ca3af;fill:none;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> 09:00 – 09:45 · with Priya</div>
+          <div style="margin-top:7px"><span class="badge b-amber">Awaiting confirmation</span></div>
+        </div>
+      </div>
+      <div class="divi"></div>
+      <div class="appt">
+        <div class="adate"><div class="amon">Sep</div><div class="aday">02</div><div class="adow">Wed</div></div>
+        <div style="flex:1;min-width:0">
+          <div class="anm">Hair Spa</div>
+          <div class="ameta"><svg style="width:13px;height:13px;stroke:#9ca3af;fill:none;stroke-width:2;stroke-linecap:round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> 14:00 – 15:00 · with Amit</div>
+          <div style="margin-top:7px"><span class="badge b-blue">Confirmed</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn">
+      <svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      Book an appointment
+    </div>
+  </div>
+
+  <div class="tab">
+    <div class="ti on"><svg class="ic" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>Home</div>
+    <div class="ti"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Bookings</div>
+    <div class="ti"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8l4 4 5-6 5 6 4-4v9H3z"/></svg>Membership</div>
+    <div class="ti"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Profile</div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

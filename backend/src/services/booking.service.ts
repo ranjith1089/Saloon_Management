@@ -50,6 +50,14 @@ export class BookingService {
 
     const bookingDate = new Date(data.bookingDate);
 
+    // Reject appointments in the past (server-side guard; the UI also blocks
+    // past dates/slots, but this is the real gate). 5-minute grace for clock skew.
+    const bookingStart = new Date(bookingDate);
+    bookingStart.setHours(startHour, startMin, 0, 0);
+    if (bookingStart.getTime() < Date.now() - 5 * 60 * 1000) {
+      throw new BadRequestError('Cannot create a booking in the past');
+    }
+
     // Member pricing — if the customer has an active membership AND the service
     // has a memberPrice, use it. Walk-ins never get member pricing.
     const activeMembership = data.customerId
@@ -630,6 +638,13 @@ export class BookingService {
     const workStart = startH * 60 + startM;
     const workEnd = endH * 60 + endM;
 
+    // If the requested date is today, disable slots that have already passed
+    // (with a small buffer). Fully past dates yield all-unavailable slots.
+    const now = new Date();
+    const isToday = targetDate.toDateString() === now.toDateString();
+    const isPastDate = targetDate < new Date(now.toDateString());
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+
     for (let mins = workStart; mins + service.duration <= workEnd; mins += 30) {
       const sh = Math.floor(mins / 60);
       const sm = mins % 60;
@@ -647,7 +662,8 @@ export class BookingService {
         );
       });
 
-      slots.push({ startTime, endTime, available: !conflict });
+      const inPast = isPastDate || (isToday && mins <= nowMins);
+      slots.push({ startTime, endTime, available: !conflict && !inPast });
     }
 
     return { slots };

@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Calendar, Clock, MapPin, User, Plus, Ban, Check } from 'lucide-react';
 import api from '@/services/api';
 import MyNewBookingModal from '@/components/my/MyNewBookingModal';
+import { bookingStatusLabel, bookingStatusTone } from '@/utils/booking';
 
 type Tab = 'upcoming' | 'past';
 
@@ -37,6 +38,8 @@ export default function MyBookings() {
       queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-home'] });
     },
+    onError: (e: any) =>
+      toast.error(e?.response?.data?.message || 'Could not cancel this booking'),
   });
 
   const bookings = data || [];
@@ -99,14 +102,6 @@ export default function MyBookings() {
         <div className="space-y-3">
           {list.map((b) => {
             const start = combineDateTime(b.bookingDate, b.startTime);
-            const statusColor = {
-              PENDING: 'bg-yellow-100 text-yellow-800',
-              CONFIRMED: 'bg-blue-100 text-blue-700',
-              IN_PROGRESS: 'bg-purple-100 text-purple-700',
-              COMPLETED: 'bg-green-100 text-green-700',
-              CANCELLED: 'bg-red-100 text-red-700',
-              NO_SHOW: 'bg-gray-200 text-gray-700',
-            }[b.status as string] || 'bg-gray-100 text-gray-700';
 
             return (
               <div key={b.id} className="card">
@@ -124,8 +119,8 @@ export default function MyBookings() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold">{b.service?.name}</h3>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColor}`}>
-                        {b.status.replace('_', ' ')}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${bookingStatusTone(b.status)}`}>
+                        {bookingStatusLabel(b.status)}
                       </span>
                       {b.paymentStatus === 'PAID' && (
                         <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">
@@ -142,16 +137,23 @@ export default function MyBookings() {
 
                   <div className="text-right">
                     <div className="text-lg font-semibold text-primary-600">₹{Number(b.totalAmount).toLocaleString()}</div>
-                    {canCancel(b) && (
+                    {canCancel(b) ? (
                       <button
+                        disabled={cancel.isPending}
                         onClick={() => {
                           const reason = prompt('Reason for cancelling? (optional)') || 'Cancelled by customer';
                           cancel.mutate({ id: b.id, reason });
                         }}
-                        className="mt-2 text-xs text-red-600 hover:underline inline-flex items-center gap-1"
+                        className="mt-2 text-xs text-red-600 hover:underline inline-flex items-center gap-1 disabled:opacity-50"
                       >
                         <Ban className="w-3 h-3" /> Cancel
                       </button>
+                    ) : (
+                      !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(b.status) && (
+                        <p className="mt-2 text-[10px] text-gray-400">
+                          Can't cancel within 2h of start
+                        </p>
+                      )
                     )}
                   </div>
                 </div>

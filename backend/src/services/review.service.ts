@@ -40,12 +40,13 @@ export class ReviewService {
     const skip = (page - 1) * limit;
 
     const where: any = {};
+    if (query.customerId) where.customerId = query.customerId;
     if (query.staffId) where.staffId = query.staffId;
     if (query.serviceId) where.serviceId = query.serviceId;
     if (query.rating) where.rating = parseInt(query.rating, 10);
     if (query.isApproved !== undefined) where.isApproved = query.isApproved === 'true';
 
-    const [reviews, total, avg] = await Promise.all([
+    const [reviews, total, avg, byRating] = await Promise.all([
       prisma.review.findMany({
         where,
         skip,
@@ -63,7 +64,17 @@ export class ReviewService {
       }),
       prisma.review.count({ where }),
       prisma.review.aggregate({ where, _avg: { rating: true } }),
+      prisma.review.groupBy({ by: ['rating'], where, _count: true }),
     ]);
+
+    // 5★ → 1★ breakdown so the UI can show a rating distribution.
+    const distribution = byRating.reduce(
+      (acc: Record<number, number>, d) => {
+        acc[d.rating] = d._count;
+        return acc;
+      },
+      { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    );
 
     return {
       reviews,
@@ -71,6 +82,7 @@ export class ReviewService {
       page,
       limit,
       averageRating: avg._avg.rating || 0,
+      distribution,
     };
   }
 

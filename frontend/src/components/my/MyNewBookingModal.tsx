@@ -105,6 +105,9 @@ export default function MyNewBookingModal({ open, onClose }: { open: boolean; on
     onSuccess: (b) => {
       toast.success(`Booking requested · ${b?.bookingNumber || ''}`);
       qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      // Refresh the home "Upcoming" tile immediately (keyed ['dashboard-home', role]).
+      qc.invalidateQueries({ queryKey: ['dashboard-home'] });
+      qc.invalidateQueries({ queryKey: ['my-bookings-history'] });
       onClose();
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || e?.message || 'Booking failed'),

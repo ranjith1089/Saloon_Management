@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Loader2, Calendar, User, Scissors, Building2, Tag, X, Check, Crown } from 'lucide-react';
+import { Loader2, Calendar, User, Scissors, Building2, Tag, X, Check, Crown, UserPlus } from 'lucide-react';
 import Modal from './Modal';
 import api from '@/services/api';
 
@@ -38,6 +38,10 @@ export default function NewBookingModal({ open, onClose, prefill }: Props) {
   const [step, setStep] = useState(1);
   const [couponInput, setCouponInput] = useState('');
   const [applied, setApplied] = useState<AppliedCoupon | null>(null);
+  // Inline "quick add customer" — lets an admin book at a salon that has no
+  // customers yet without leaving the modal.
+  const [addingCustomer, setAddingCustomer] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({ firstName: '', lastName: '', email: '', phone: '' });
 
   const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
@@ -164,6 +168,25 @@ export default function NewBookingModal({ open, onClose, prefill }: Props) {
     setValue('couponCode', '');
   };
 
+  const createCustomerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post('/customers', {
+        ...newCustomer,
+        password: 'customer123',
+        country: 'India',
+      });
+      return res.data.data;
+    },
+    onSuccess: (customer: any) => {
+      toast.success('Customer added');
+      queryClient.invalidateQueries({ queryKey: ['customers-select'] });
+      if (customer?.userId) setValue('customerId', customer.userId, { shouldValidate: true });
+      setAddingCustomer(false);
+      setNewCustomer({ firstName: '', lastName: '', email: '', phone: '' });
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Could not add customer'),
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       const payload = { ...data, couponCode: applied?.code || undefined };
@@ -183,6 +206,8 @@ export default function NewBookingModal({ open, onClose, prefill }: Props) {
     setStep(1);
     setApplied(null);
     setCouponInput('');
+    setAddingCustomer(false);
+    setNewCustomer({ firstName: '', lastName: '', email: '', phone: '' });
     onClose();
   };
 
@@ -388,6 +413,76 @@ export default function NewBookingModal({ open, onClose, prefill }: Props) {
               ))}
             </select>
             {errors.customerId && <p className="text-xs text-red-600 mt-1">{errors.customerId.message}</p>}
+
+            {customers && customers.length === 0 && !addingCustomer && (
+              <p className="text-xs text-amber-600 mt-1">
+                No customers yet — add one to book this appointment.
+              </p>
+            )}
+
+            {!addingCustomer ? (
+              <button
+                type="button"
+                onClick={() => setAddingCustomer(true)}
+                className="mt-2 text-xs text-primary-600 hover:underline inline-flex items-center gap-1"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Add new customer
+              </button>
+            ) : (
+              <div className="mt-3 border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    className="input"
+                    placeholder="First name"
+                    value={newCustomer.firstName}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, firstName: e.target.value })}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Last name"
+                    value={newCustomer.lastName}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, lastName: e.target.value })}
+                  />
+                </div>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder="Email"
+                  value={newCustomer.email}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                />
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  maxLength={10}
+                  placeholder="10-digit mobile"
+                  value={newCustomer.phone}
+                  onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value.replace(/\D/g, '') })}
+                />
+                <div className="flex justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setAddingCustomer(false)}
+                    className="btn-secondary text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      !newCustomer.firstName.trim() ||
+                      !newCustomer.email.trim() ||
+                      createCustomerMutation.isPending
+                    }
+                    onClick={() => createCustomerMutation.mutate()}
+                    className="btn-primary text-xs inline-flex items-center gap-1 disabled:opacity-50"
+                  >
+                    {createCustomerMutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Create & select
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

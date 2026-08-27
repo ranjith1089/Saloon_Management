@@ -8,11 +8,16 @@ import { Scissors, Loader2, Gift } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/authStore';
 
+const NAME_RE = /^[A-Za-z][A-Za-z\s.'-]*$/;
+const PHONE_RE = /^[6-9]\d{9}$/;
+
 const registerSchema = z.object({
-  firstName: z.string().min(2, 'First name required'),
-  lastName: z.string().min(2, 'Last name required'),
+  firstName: z.string().trim().min(2, 'First name required').max(50, 'Max 50 characters')
+    .regex(NAME_RE, 'Letters only'),
+  lastName: z.string().trim().min(2, 'Last name required').max(50, 'Max 50 characters')
+    .regex(NAME_RE, 'Letters only'),
   email: z.string().email('Invalid email'),
-  phone: z.string().optional(),
+  phone: z.string().trim().regex(PHONE_RE, 'Enter a valid 10-digit mobile number'),
   password: z.string().min(6, 'Min 6 characters'),
 });
 
@@ -90,7 +95,8 @@ export default function Register() {
 
             <div>
               <label className="label">Phone</label>
-              <input className="input" {...register('phone')} />
+              <input className="input" inputMode="numeric" maxLength={10} placeholder="10-digit mobile" {...register('phone')} />
+              {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone.message}</p>}
             </div>
 
             <div>

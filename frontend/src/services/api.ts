@@ -63,7 +63,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 401s from the auth endpoints themselves (wrong password, bad refresh token)
+    // are NOT an expired session — don't attempt a silent refresh or redirect.
+    // Let them fall through so the caller/toast shows "Invalid email or password".
+    const isAuthEndpoint = /\/auth\/(login|register|refresh-token)$/.test(originalRequest?.url || '');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;
       const refreshToken = localStorage.getItem('refreshToken');
 
@@ -109,8 +114,12 @@ api.interceptors.response.use(
       );
       // Notify any listener (e.g. useOrganization) so it can refresh caps.
       window.dispatchEvent(new CustomEvent('plan-limit', { detail: error.response.data.details }));
-    } else if (error.response?.status !== 401) {
-      toast.error(message);
+    } else if (error.response?.status !== 401 || isAuthEndpoint) {
+      // Show the toast for every error except a genuine session-expiry 401
+      // (which redirects to /login above). Auth-endpoint 401s DO get a toast.
+      toast.error(isAuthEndpoint && error.response?.status === 401
+        ? 'Invalid email or password'
+        : message);
     }
     return Promise.reject(error);
   }
