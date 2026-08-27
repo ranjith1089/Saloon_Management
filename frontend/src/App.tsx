@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import RoleGuard from '@/components/RoleGuard';
 import DashboardLayout from '@/layouts/DashboardLayout';
@@ -54,9 +55,10 @@ const ADMIN_ONLY = ['ADMIN'] as const;
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public marketing pages — wrapped in PublicLayout (nav + footer) */}
-      <Route element={<PublicLayout />}>
+    <>
+      <Routes>
+        {/* Public marketing pages — wrapped in PublicLayout (nav + footer) */}
+        <Route element={<PublicLayout />}>
         <Route path="/"         element={<PublicHome />} />
         <Route path="/about"    element={<PublicAbout />} />
         <Route path="/features" element={<PublicFeatures />} />
@@ -114,6 +116,8 @@ export default function App() {
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+      </Routes>
+      <Analytics />
+    </>
   );
 }
