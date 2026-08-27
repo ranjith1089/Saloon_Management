@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge, Card } from '@/components/salon/ui';
@@ -26,12 +27,31 @@ function canCancel(b: any) {
 export default function BookingsScreen() {
   const t = useTheme();
   const insets = useSafeAreaInsets();
+  const qc = useQueryClient();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
 
   const { data, isLoading } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => unwrap<any[]>(await api.get('/bookings?limit=200')),
   });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) =>
+      api.patch(`/bookings/${id}/status`, { status: 'CANCELLED', cancelReason: 'Cancelled by customer' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      Alert.alert('Booking cancelled');
+    },
+    onError: (e: any) =>
+      Alert.alert('Could not cancel', e?.response?.data?.message || 'Please try again.'),
+  });
+
+  const confirmCancel = (b: any) => {
+    Alert.alert('Cancel appointment?', `${b.service?.name} on ${dateParts(b.bookingDate).mon} ${dateParts(b.bookingDate).day}`, [
+      { text: 'Keep', style: 'cancel' },
+      { text: 'Cancel booking', style: 'destructive', onPress: () => cancelMutation.mutate(b.id) },
+    ]);
+  };
 
   const { upcoming, past } = useMemo(() => {
     const all = data ?? [];
@@ -49,9 +69,9 @@ export default function BookingsScreen() {
     <View style={{ flex: 1, backgroundColor: t.screen }}>
       <View style={[styles.header, { backgroundColor: t.card, borderBottomColor: t.border, paddingTop: insets.top + 12 }]}>
         <Text style={[styles.title, { color: t.text }]}>My Bookings</Text>
-        <View style={styles.plus}>
+        <Pressable style={styles.plus} onPress={() => router.push('/book')}>
           <Ionicons name="add" size={22} color="#fff" />
-        </View>
+        </Pressable>
       </View>
 
       <View style={[styles.segWrap, { backgroundColor: t.card }]}>
@@ -104,10 +124,13 @@ export default function BookingsScreen() {
                     </Text>
                   </View>
                   {canCancel(b) && (
-                    <View style={[styles.metaRow, { marginTop: 8 }]}>
+                    <Pressable
+                      style={[styles.metaRow, { marginTop: 8 }]}
+                      disabled={cancelMutation.isPending}
+                      onPress={() => confirmCancel(b)}>
                       <Ionicons name="close-circle-outline" size={14} color={Brand.primary} />
                       <Text style={styles.cancel}>Cancel</Text>
-                    </View>
+                    </Pressable>
                   )}
                 </View>
                 <Text style={styles.price}>{money(b.totalAmount)}</Text>

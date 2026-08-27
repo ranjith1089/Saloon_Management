@@ -1,14 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, SectionHeader } from '@/components/salon/ui';
 import { Brand, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { api, unwrap } from '@/lib/api';
-import { money } from '@/lib/format';
+import { fullName, money } from '@/lib/format';
 import { useAuth } from '@/store/auth';
 
 function planDuration(days?: number) {
@@ -44,6 +44,22 @@ export default function MembershipScreen() {
 
   const active = activeQ.data;
   const plans = (plansQ.data ?? []).filter((p) => p.isActive && p.id !== active?.plan?.id);
+
+  const requestMutation = useMutation({
+    mutationFn: (plan: any) => {
+      const name = fullName(user?.profile?.firstName, user?.profile?.lastName);
+      return api.post('/inquiries', {
+        name,
+        email: user?.email,
+        phone: user?.profile?.phone || null,
+        subject: `Membership request: ${plan.name}`,
+        message: `${name} would like to enrol in the "${plan.name}" plan (${money(plan.price)} / ${planDuration(plan.durationDays)}). Please follow up.`,
+        source: 'membership-request',
+      });
+    },
+    onSuccess: () => Alert.alert('Request sent', 'The salon will get in touch to help you enrol.'),
+    onError: (e: any) => Alert.alert('Could not send request', e?.response?.data?.message || 'Please try again.'),
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: t.screen }}>
@@ -112,10 +128,19 @@ export default function MembershipScreen() {
               <Text style={[styles.planPrice, { color: t.text }]}>
                 {money(p.price)} <Text style={[styles.planPer, { color: t.faint }]}>/ {planDuration(p.durationDays)}</Text>
               </Text>
-              <View style={styles.reqBtn}>
-                <Ionicons name="paper-plane-outline" size={15} color="#fff" />
-                <Text style={styles.reqText}>Request this plan</Text>
-              </View>
+              <Pressable
+                style={({ pressed }) => [styles.reqBtn, pressed && { opacity: 0.85 }]}
+                disabled={requestMutation.isPending}
+                onPress={() => requestMutation.mutate(p)}>
+                {requestMutation.isPending && requestMutation.variables?.id === p.id ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="paper-plane-outline" size={15} color="#fff" />
+                    <Text style={styles.reqText}>Request this plan</Text>
+                  </>
+                )}
+              </Pressable>
             </Card>
           ))
         )}

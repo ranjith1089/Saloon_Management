@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Badge, Card, IconCircle, SectionHeader } from '@/components/salon/ui';
@@ -144,10 +145,12 @@ export default function HomeScreen() {
           </Card>
         )}
 
-        <View style={styles.bookBtn}>
+        <Pressable
+          style={({ pressed }) => [styles.bookBtn, pressed && { opacity: 0.9 }]}
+          onPress={() => router.push('/book')}>
           <Ionicons name="add" size={20} color="#fff" />
           <Text style={styles.bookBtnText}>Book an appointment</Text>
-        </View>
+        </Pressable>
       </ScrollView>
     </View>
   );
