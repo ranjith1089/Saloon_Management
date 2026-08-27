@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&display=swap">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Inter,system-ui,sans-serif;background:#e5e7eb;color:#111827;-webkit-font-smoothing:antialiased}
+    a{color:#b91c1c;text-decoration:none}a:hover{color:#7f1d1d}
+    .scr{width:390px;height:844px;background:#f9fafb;display:flex;flex-direction:column;overflow:hidden;position:relative}
+    .hd{padding:22px 18px 14px;background:#fff;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:12px}
+    .ic{width:20px;height:20px;stroke:#374151;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .htitle{font-size:17px;font-weight:700}
+    .steps{display:flex;align-items:center;gap:6px;padding:12px 18px;background:#fff;border-bottom:1px solid #f3f4f6}
+    .step{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:#9ca3af}
+    .step.on{color:#dc2626}
+    .stnum{width:20px;height:20px;border-radius:50%;background:#f3f4f6;color:#9ca3af;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+    .step.on .stnum{background:#dc2626;color:#fff}
+    .stline{flex:1;height:1.5px;background:#f3f4f6}
+    .body{flex:1;overflow:hidden;padding:16px 16px 0;display:flex;flex-direction:column;gap:9px}
+    .lbl{font-size:12px;font-weight:700;color:#374151;margin:6px 2px 2px}
+    .svc{border:1.5px solid #f3f4f6;border-radius:13px;padding:13px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff}
+    .svc.sel{border-color:#dc2626;background:#fef2f2}
+    .svcn{font-size:13.5px;font-weight:600}
+    .svcm{font-size:11.5px;color:#9ca3af;margin-top:2px}
+    .svcp{font-size:14px;font-weight:700;color:#dc2626}
+    .check{width:22px;height:22px;border-radius:50%;background:#dc2626;display:flex;align-items:center;justify-content:center;margin-left:12px}
+    .staffrow{display:flex;gap:12px}
+    .stf{display:flex;flex-direction:column;align-items:center;gap:5px;width:58px}
+    .stfa{width:50px;height:50px;border-radius:50%;background:#f3f4f6;color:#6b7280;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;border:2px solid transparent}
+    .stf.sel .stfa{border-color:#dc2626;background:#fee2e2;color:#b91c1c}
+    .stfn{font-size:11px;color:#6b7280;font-weight:500}.stf.sel .stfn{color:#dc2626;font-weight:600}
+    .datescroll{display:flex;gap:8px;overflow:hidden}
+    .dchip{min-width:52px;border:1.5px solid #f3f4f6;border-radius:12px;padding:9px 0;text-align:center;background:#fff;flex-shrink:0}
+    .dchip.sel{border-color:#dc2626;background:#dc2626}
+    .ddow{font-size:10.5px;color:#9ca3af;font-weight:600}.dchip.sel .ddow{color:#fecaca}
+    .dnum{font-size:17px;font-weight:800;margin-top:2px}.dchip.sel .dnum{color:#fff}
+    .slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .slot{border:1.5px solid #f3f4f6;border-radius:10px;padding:9px 0;text-align:center;font-size:12.5px;font-weight:600;color:#374151;background:#fff}
+    .slot.sel{border-color:#dc2626;background:#dc2626;color:#fff}
+    .slot.off{background:#f3f4f6;color:#cbd5e1;text-decoration:line-through;border-color:#f3f4f6}
+    .cta{padding:14px 16px;background:#fff;border-top:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;gap:14px}
+    .ctap{font-size:11px;color:#9ca3af}.ctav{font-size:18px;font-weight:800}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#dc2626;color:#fff;font-weight:700;font-size:14px;height:46px;border-radius:12px;padding:0 26px}
+  </style>
+</helmet>
+<div class="scr">
+  <div class="hd">
+    <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    <div class="htitle">Book appointment</div>
+  </div>
+
+  <div class="steps">
+    <div class="step on"><span class="stnum">1</span>Service</div>
+    <div class="stline"></div>
+    <div class="step"><span class="stnum">2</span>Date &amp; time</div>
+    <div class="stline"></div>
+    <div class="step"><span class="stnum">3</span>Confirm</div>
+  </div>
+
+  <div class="body">
+    <div class="lbl">Select a service</div>
+    <div class="svc sel">
+      <div><div class="svcn">Women&#39;s Haircut</div><div class="svcm">45 min · Style &amp; finish</div></div>
+      <div style="display:flex;align-items:center"><span class="svcp">₹800</span>
+        <span class="check"><svg style="width:13px;height:13px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span></div>
+    </div>
+    <div class="svc">
+      <div><div class="svcn">Hair Spa &amp; Head Massage</div><div class="svcm">60 min · Deep conditioning</div></div>
+      <span class="svcp">₹1,200</span>
+    </div>
+    <div class="svc">
+      <div><div class="svcn">Global Colour</div><div class="svcm">90 min · Ammonia-free</div></div>
+      <span class="svcp">₹2,500</span>
+    </div>
+
+    <div class="lbl">Choose your stylist</div>
+    <div class="staffrow">
+      <div class="stf sel"><div class="stfa">PR</div><div class="stfn">Priya</div></div>
+      <div class="stf"><div class="stfa">AM</div><div class="stfn">Amit</div></div>
+      <div class="stf"><div class="stfa">NK</div><div class="stfn">Neha</div></div>
+      <div class="stf"><div class="stfa" style="background:#fef2f2;color:#dc2626">?</div><div class="stfn">Any</div></div>
+    </div>
+
+    <div class="lbl">Pick a date</div>
+    <div class="datescroll">
+      <div class="dchip"><div class="ddow">FRI</div><div class="dnum">28</div></div>
+      <div class="dchip sel"><div class="ddow">SAT</div><div class="dnum">29</div></div>
+      <div class="dchip"><div class="ddow">SUN</div><div class="dnum">30</div></div>
+      <div class="dchip"><div class="ddow">MON</div><div class="dnum">31</div></div>
+      <div class="dchip"><div class="ddow">TUE</div><div class="dnum">01</div></div>
+    </div>
+
+    <div class="lbl">Available times</div>
+    <div class="slots">
+      <div class="slot off">09:00</div>
+      <div class="slot">09:30</div>
+      <div class="slot sel">10:00</div>
+      <div class="slot">10:30</div>
+      <div class="slot">11:00</div>
+      <div class="slot off">11:30</div>
+      <div class="slot">12:00</div>
+      <div class="slot">12:30</div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div><div class="ctap">Women&#39;s Haircut · 10:00</div><div class="ctav">₹800</div></div>
+    <div class="btn">Continue
+      <svg style="width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,900&display=swap">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Inter,system-ui,sans-serif;background:#e5e7eb;color:#111827;-webkit-font-smoothing:antialiased}
+    a{color:#b91c1c;text-decoration:none}a:hover{color:#7f1d1d}
+    .scr{width:390px;height:844px;background:#f9fafb;display:flex;flex-direction:column;overflow:hidden;position:relative}
+    .hd{padding:22px 18px 14px;background:#111827;color:#fff;display:flex;align-items:center;gap:12px}
+    .ic{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .htitle{font-size:17px;font-weight:700}
+    .body{flex:1;overflow:hidden;padding:16px 16px 0;display:flex;flex-direction:column;gap:12px}
+    .card{background:#fff;border:1px solid #f3f4f6;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:15px}
+    .cust{display:flex;align-items:center;gap:13px}
+    .ca{width:48px;height:48px;border-radius:50%;background:#fee2e2;color:#b91c1c;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px}
+    .cn{font-size:16px;font-weight:800}
+    .cp{font-size:12px;color:#6b7280;margin-top:2px}
+    .memb{font-size:10px;font-weight:700;color:#b45309;background:#fef3c7;padding:3px 9px;border-radius:99px;display:inline-flex;align-items:center;gap:4px}
+    .memb svg{width:11px;height:11px;stroke:#b45309;fill:none;stroke-width:2}
+    .drow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f6f7f8;font-size:13px}
+    .drow:last-child{border-bottom:none}
+    .dk{color:#6b7280}.dv{font-weight:700}
+    .step{display:flex;gap:12px;align-items:flex-start}
+    .sdot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1}
+    .sdot svg{width:13px;height:13px;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+    .sconn{width:2px;flex:1;background:#e5e7eb;margin:-2px 0 -2px 12px}
+    .slabel{font-size:13.5px;font-weight:600}
+    .stime{font-size:11px;color:#9ca3af}
+    .pmlabel{font-size:12px;font-weight:700;color:#374151;margin-bottom:2px}
+    .pms{display:flex;gap:8px}
+    .pm{flex:1;text-align:center;border:1.5px solid #f3f4f6;border-radius:11px;padding:11px 0;font-size:12.5px;font-weight:600;color:#374151}
+    .pm.sel{border-color:#dc2626;background:#fef2f2;color:#b91c1c}
+    .cta{padding:14px 16px;background:#fff;border-top:1px solid #f3f4f6}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#16a34a;color:#fff;font-weight:700;font-size:15px;height:50px;border-radius:13px}
+  </style>
+</helmet>
+<div class="scr">
+  <div class="hd">
+    <svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    <div class="htitle">Appointment #BK-2048</div>
+  </div>
+
+  <div class="body">
+    <div class="card">
+      <div class="cust">
+        <div class="ca">SD</div>
+        <div style="flex:1">
+          <div class="cn">Sahanaa Dhanapalan</div>
+          <div class="cp">+91 98765 43210</div>
+        </div>
+        <span class="memb"><svg viewBox="0 0 24 24"><path d="M3 8l4 4 5-6 5 6 4-4v9H3z"/></svg>Gold</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="drow"><span class="dk">Service</span><span class="dv">Women&#39;s Haircut</span></div>
+      <div class="drow"><span class="dk">Time</span><span class="dv">10:00 – 10:45</span></div>
+      <div class="drow"><span class="dk">Branch</span><span class="dv">Koramangala</span></div>
+      <div class="drow"><span class="dk">Amount</span><span class="dv" style="color:#dc2626">₹800 <span style="font-weight:500;color:#9ca3af;font-size:11px">(member)</span></span></div>
+    </div>
+
+    <div class="card">
+      <div class="step">
+        <div class="sdot" style="background:#dcfce7"><svg style="stroke:#15803d" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div style="padding-bottom:14px"><div class="slabel">Confirmed</div><div class="stime">Booked 24 Aug, approved</div></div>
+      </div>
+      <div style="display:flex;gap:12px"><div class="sconn" style="background:#dc2626"></div><div style="flex:1"></div></div>
+      <div class="step">
+        <div class="sdot" style="background:#dc2626"><svg style="stroke:#fff" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/></svg></div>
+        <div style="padding-bottom:14px"><div class="slabel" style="color:#dc2626">In progress</div><div class="stime">Started 10:02</div></div>
+      </div>
+      <div style="display:flex;gap:12px"><div class="sconn"></div><div style="flex:1"></div></div>
+      <div class="step">
+        <div class="sdot" style="background:#f3f4f6"><svg style="stroke:#9ca3af" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div><div class="slabel" style="color:#9ca3af">Completed &amp; paid</div><div class="stime">Pending</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="pmlabel">Collect payment via</div>
+      <div class="pms">
+        <div class="pm sel">UPI</div>
+        <div class="pm">Card</div>
+        <div class="pm">Cash</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="btn"><svg style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Complete &amp; collect ₹800</div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

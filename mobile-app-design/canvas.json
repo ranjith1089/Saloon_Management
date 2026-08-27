@@ -1,0 +1,31 @@
+{
+  "pages": [
+    { "id": "customer", "name": "Customer app" },
+    { "id": "staff", "name": "Staff app" },
+    { "id": "admin", "name": "Admin / Owner" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html", "title": "Customer · Home", "page": "customer", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "CustomerBook.dc.html", "title": "Customer · Book", "page": "customer", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "CustomerBookings.dc.html", "title": "Customer · My Bookings", "page": "customer", "x": 940, "y": 0, "w": 390, "h": 844 },
+    { "file": "CustomerMembership.dc.html", "title": "Customer · Membership", "page": "customer", "x": 1410, "y": 0, "w": 390, "h": 844 },
+    { "file": "CustomerPayments.dc.html", "title": "Customer · Payments", "page": "customer", "x": 0, "y": 964, "w": 390, "h": 844 },
+    { "file": "CustomerReferrals.dc.html", "title": "Customer · Refer & Earn", "page": "customer", "x": 470, "y": 964, "w": 390, "h": 844 },
+    { "file": "CustomerProfile.dc.html", "title": "Customer · Profile", "page": "customer", "x": 940, "y": 964, "w": 390, "h": 844 },
+
+    { "file": "StaffToday.dc.html", "title": "Staff · Today", "page": "staff", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "StaffAppointment.dc.html", "title": "Staff · Appointment", "page": "staff", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "StaffEarnings.dc.html", "title": "Staff · Earnings", "page": "staff", "x": 940, "y": 0, "w": 390, "h": 844 },
+
+    { "file": "AdminDashboard.dc.html", "title": "Admin · Dashboard", "page": "admin", "x": 0, "y": 0, "w": 390, "h": 844 },
+    { "file": "AdminBookings.dc.html", "title": "Admin · Bookings", "page": "admin", "x": 470, "y": 0, "w": 390, "h": 844 },
+    { "file": "AdminCustomers.dc.html", "title": "Admin · Customers", "page": "admin", "x": 940, "y": 0, "w": 390, "h": 844 },
+    { "file": "AdminReviews.dc.html", "title": "Admin · Reviews", "page": "admin", "x": 1410, "y": 0, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    { "id": "note-customer", "page": "customer", "x": 0, "y": -132, "w": 700, "text": "CUSTOMER APP — book an appointment, manage bookings, browse & request memberships, view payments and leave reviews, refer friends, and edit profile." },
+    { "id": "note-staff", "page": "staff", "x": 0, "y": -132, "w": 700, "text": "STAFF APP — today's job queue, appointment detail with start / complete & collect payment, and an earnings view with commission and payouts." },
+    { "id": "note-admin", "page": "admin", "x": 0, "y": -132, "w": 700, "text": "ADMIN / OWNER — at-a-glance KPIs and revenue, bookings management, the customer book, and the reviews board with rating breakdown." }
+  ],
+  "launch": { "view": "canvas", "page": "customer" }
+}
